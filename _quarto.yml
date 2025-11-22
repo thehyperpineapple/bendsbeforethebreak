@@ -8,9 +8,9 @@ execute:
 book:
   title: "YOUR PROJECT TITLE"
   author:
-    - AUTHOR1 (UNI1)
-    - AUTHOR2 (UNI2)
-  repo-url: https://github.com/YOUR_GITHUB_ACCOUNT/REPO_NAME
+    - Vaishnavi Kannan (vk2580)
+    - Raghav Sampath (rs4760)
+  repo-url: https://github.com/thehyperpineapple/stat5702-team-7-final-project
   date: today
   page-footer:
     right: |
