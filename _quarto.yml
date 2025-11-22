@@ -6,11 +6,11 @@ execute:
   echo: true
 
 book:
-  title: "YOUR PROJECT TITLE"
+  title: "Bends Before The Break: Understanding Recessions Through the Yield Curve"
   author:
     - Vaishnavi Kannan (vk2580)
     - Raghav Sampath (rs4760)
-  repo-url: https://github.com/thehyperpineapple/stat5702-team-7-final-project
+  repo-url: https://github.com/thehyperpineapple/bendsbeforethebreak
   date: today
   page-footer:
     right: |
@@ -26,5 +26,3 @@ format:
   html:
     theme: cosmo
     code-fold: true
-
-
