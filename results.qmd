@@ -1,1 +1,1041 @@
 # Results
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(here)
+library(lubridate)
+
+# Load cleaned master dataset
+master <- read_csv("data/clean/master_df.csv") |>
+  clean_names() |>
+  mutate(date = as.Date(date))
+
+```
+
+```{r}
+# Focus on the modern macro era
+master <- master |>
+  filter(date >= as.Date("1954-01-31"))
+
+summary(master$date)  # quick check
+
+```
+
+```{r}
+yc <- master |>
+  select(date, dgs3mo, dgs2, dgs5, dgs10, dgs30)
+
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Pick the latest available month for snapshot
+latest_month <- master |> filter(date == max(date))
+
+yield_snapshot <- latest_month |>
+  select(dgs3mo, dgs2, dgs5, dgs10, dgs30) |>
+  pivot_longer(cols = everything(),
+               names_to = "maturity",
+               values_to = "yield")
+
+yield_snapshot$maturity <- factor(
+  yield_snapshot$maturity,
+  levels = c("dgs3mo", "dgs2", "dgs5", "dgs10", "dgs30"),
+  labels = c("3-Month", "2-Year", "5-Year", "10-Year", "30-Year")
+)
+
+ggplot(yield_snapshot, aes(x = maturity, y = yield)) +
+  geom_line(group = 1, color = viridis(1), linewidth = 1.2) +
+  geom_point(color = viridis(1), size = 3) +
+  labs(
+    title = "U.S. Treasury Yield Curve (Latest Month)",
+    subtitle = paste("Data as of", max(master$date)),
+    x = "Maturity",
+    y = "Yield (%)"
+  ) +
+  scale_y_continuous(labels = label_percent(scale = 0.01)) +
+  theme_minimal(base_size = 13) +
+  theme(panel.grid.minor = element_blank())
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Long format for key maturities
+yc_long <- master |>
+  select(date, dgs3mo, dgs2, dgs5, dgs10, dgs30) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "maturity",
+    values_to = "yield"
+  ) |>
+  mutate(
+    maturity = factor(
+      maturity,
+      levels = c("dgs3mo", "dgs2", "dgs5", "dgs10", "dgs30"),
+      labels = c("3-Month", "2-Year", "5-Year", "10-Year", "30-Year")
+    )
+  )
+
+ggplot(yc_long, aes(x = date, y = yield, colour = maturity)) +
+  geom_line(linewidth = 0.6) +
+  scale_colour_viridis_d(name = "Maturity") +
+  labs(
+    title = "U.S. Treasury Yields Over Time by Maturity",
+    subtitle = "Monthly constant-maturity Treasury rates",
+    x = NULL,
+    y = "Yield (%)"
+  ) +
+  scale_y_continuous(labels = label_percent(scale = 0.01)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# 1. Compute 10y–2y spread
+master <- master |>
+  mutate(spread_10y_2y = dgs10 - dgs2)
+
+# 2. Identify contiguous recession periods from USREC (0/1)
+recessions <- master |>
+  filter(usrec == 1) |>
+  arrange(date) |>
+  mutate(
+    gap = as.numeric(date - lag(date)),
+    grp = cumsum(is.na(gap) | gap > 40)   # new group when gap > ~1 month
+  ) |>
+  group_by(grp) |>
+  summarise(
+    start = min(date),
+    end   = max(date),
+    .groups = "drop"
+  )
+
+# 3. Plot spread with recession shading
+ggplot() +
+  # recession bands
+  geom_rect(
+    data = recessions,
+    aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf),
+    inherit.aes = FALSE,
+    fill = "grey80",
+    alpha = 0.4
+  ) +
+  # zero line (where inversion happens)
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.5) +
+  # spread line
+  geom_line(
+    data = master,
+    aes(x = date, y = spread_10y_2y),
+    colour = viridis(1),
+    linewidth = 0.8
+  ) +
+  labs(
+    title = "10-Year minus 2-Year Treasury Yield Spread",
+    subtitle = "Shaded areas denote NBER recession periods (USREC)",
+    x = NULL,
+    y = "Spread (percentage points)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# 1. Compute main spreads
+master_spreads <- master |>
+  mutate(
+    spread_10y_2y  = dgs10 - dgs2,
+    spread_10y_3m  = dgs10 - dgs3mo,
+    spread_5y_2y   = dgs5  - dgs2
+  ) |>
+  select(date, spread_10y_2y, spread_10y_3m, spread_5y_2y) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "spread_type",
+    values_to = "spread"
+  ) |>
+  mutate(
+    spread_type = factor(
+      spread_type,
+      levels = c("spread_10y_3m", "spread_10y_2y", "spread_5y_2y"),
+      labels = c("10Y - 3M", "10Y - 2Y", "5Y - 2Y")
+    )
+  )
+
+ggplot(master_spreads, aes(x = date, y = spread, colour = spread_type)) +
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.4) +
+  geom_line(linewidth = 0.7) +
+  scale_colour_viridis_d(name = "Spread") +
+  labs(
+    title = "Key U.S. Yield Curve Spreads Over Time",
+    subtitle = "10Y–3M, 10Y–2Y, and 5Y–2Y Treasury spreads",
+    x = NULL,
+    y = "Spread (percentage points)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(viridis)
+library(scales)
+
+# -----------------------------------------
+# 1. Prepare spreads
+# -----------------------------------------
+df <- master |>
+  mutate(
+    spread_10y_2y = dgs10 - dgs2,
+    spread_10y_3m = dgs10 - dgs3mo,
+    spread_5y_2y  = dgs5  - dgs2
+  )
+
+# -----------------------------------------
+# 2. Identify recession start dates
+# -----------------------------------------
+recession_starts <- df |>
+  arrange(date) |>
+  mutate(prev = lag(usrec, default = 0)) |>
+  filter(usrec == 1 & prev == 0) |>
+  pull(date)
+
+recession_starts
+# -----------------------------------------
+# 3. Function to compute lead time for one spread
+# -----------------------------------------
+lead_time <- function(spread_col) {
+  
+  map_df(recession_starts, function(rec_start) {
+    
+    # When did the spread first invert BEFORE the recession?
+    invert_date <- df |>
+      filter(date < rec_start, !!sym(spread_col) < 0) |>
+      arrange(date) |>
+      slice_tail(n = 1) |>     # most recent inversion
+      pull(date)
+    
+    tibble(
+      recession_start = rec_start,
+      spread = spread_col,
+      lead_months = ifelse(length(invert_date) == 0,
+                           NA,
+                           interval(invert_date, rec_start) %/% months(1))
+    )
+  })
+}
+
+# -----------------------------------------
+# 4. Apply to all spreads
+# -----------------------------------------
+lead_times <- bind_rows(
+  lead_time("spread_10y_3m"),
+  lead_time("spread_10y_2y"),
+  lead_time("spread_5y_2y")
+)
+
+lead_times
+
+# -----------------------------------------
+# 5. Average lead times (bar plot)
+# -----------------------------------------
+avg_leads <- lead_times |>
+  group_by(spread) |>
+  summarise(mean_lead = mean(lead_months, na.rm = TRUE)) |>
+  mutate(
+    spread = factor(
+      spread,
+      levels = c("spread_10y_3m", "spread_10y_2y", "spread_5y_2y"),
+      labels = c("10Y–3M", "10Y–2Y", "5Y–2Y")
+    )
+  )
+
+ggplot(avg_leads, aes(x = spread, y = mean_lead, fill = spread)) +
+  geom_col(width = 0.65) +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Average Lead Time of Spread Inversions Before U.S. Recessions",
+    subtitle = "Measured in months, from 1954 onward",
+    x = "Spread",
+    y = "Average lead time (months)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "none",
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(viridis)
+library(scales)
+
+# 1. Compute 10Y–2Y spread
+df_spread <- master |>
+  arrange(date) |>
+  mutate(
+    spread_10y_2y = dgs10 - dgs2
+  )
+
+# 2. Identify inversion periods (spread < 0) and group them
+df_inv <- df_spread |>
+  mutate(
+    is_inverted = spread_10y_2y < 0,
+    inv_group = cumsum(is_inverted != lag(is_inverted, default = FALSE))
+  ) |>
+  filter(is_inverted)
+
+inv_periods <- df_inv |>
+  group_by(inv_group) |>
+  summarise(
+    start = min(date),
+    end   = max(date),
+    .groups = "drop"
+  )
+
+# 3. For each inversion period, check if a recession occurs within 12 months after it starts
+inv_periods <- inv_periods |>
+  rowwise() |>
+  mutate(
+    has_recession_next_12m = any(
+      df_spread$usrec == 1 &
+      df_spread$date > start &
+      df_spread$date <= start + months(12)
+    )
+  ) |>
+  ungroup() |>
+  mutate(
+    signal_type = if_else(
+      has_recession_next_12m,
+      "Inversion before recession",
+      "Inversion with no recession (false positive)"
+    )
+  )
+
+# 4. Plot: spread with shaded inversion periods
+ggplot() +
+  # Shaded inversion periods, colored by whether they precede a recession
+  geom_rect(
+    data = inv_periods,
+    aes(
+      xmin = start,
+      xmax = end,
+      ymin = -Inf,
+      ymax = Inf,
+      fill = signal_type
+    ),
+    inherit.aes = FALSE,
+    alpha = 0.25
+  ) +
+  # Zero line (inversion threshold)
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.4) +
+  # Spread line
+  geom_line(
+    data = df_spread,
+    aes(x = date, y = spread_10y_2y),
+    colour = viridis(1),
+    linewidth = 0.8
+  ) +
+  scale_fill_viridis_d(name = "Inversion type") +
+  labs(
+    title = "10Y–2Y Yield Spread: True Recession Signals vs False Positives",
+    subtitle = "Shaded regions show periods when 10Y–2Y < 0; color indicates whether a recession followed within 12 months",
+    x = NULL,
+    y = "10Y–2Y spread (percentage points)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.minor = element_blank(),
+    legend.position = "bottom"
+  )
+```
+
+```{r}
+library(tidyverse)
+library(zoo)
+library(viridis)
+library(scales)
+
+# Ensure sorted by date
+df_vol <- master |>
+  arrange(date) |>
+  mutate(
+    vol_10y = rollapply(dgs10, width = 12, FUN = sd, fill = NA, align = "right"),
+    vol_2y  = rollapply(dgs2,  width = 12, FUN = sd, fill = NA, align = "right")
+  ) |>
+  select(date, vol_10y, vol_2y) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "maturity",
+    values_to = "volatility"
+  ) |>
+  mutate(
+    maturity = factor(
+      maturity,
+      levels = c("vol_10y", "vol_2y"),
+      labels = c("10-Year", "2-Year")
+    )
+  )
+
+ggplot(df_vol, aes(x = date, y = volatility, colour = maturity)) +
+  geom_line(linewidth = 0.7) +
+  scale_colour_viridis_d(name = "Maturity") +
+  labs(
+    title = "Rolling 12-Month Volatility of Treasury Yields",
+    subtitle = "Standard deviation of monthly yields for 10Y and 2Y Treasuries",
+    x = NULL,
+    y = "Volatility (std. dev. of yield, in percentage points)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+library(patchwork)
+
+# 1. Prepare data with inflation + spread
+df_inf <- master |>
+  mutate(
+    spread_10y_2y = dgs10 - dgs2
+  ) |>
+  select(date, cpiaucsl, cpilfesl, spread_10y_2y)
+
+# 2. Inflation plot (Headline vs Core)
+p_inf <- df_inf |>
+  pivot_longer(
+    cols = c(cpiaucsl, cpilfesl),
+    names_to = "series",
+    values_to = "index"
+  ) |>
+  mutate(
+    series = factor(
+      series,
+      levels = c("cpiaucsl", "cpilfesl"),
+      labels = c("CPI (Headline)", "CPI (Core, ex Food & Energy)")
+    )
+  ) |>
+  ggplot(aes(x = date, y = index, colour = series)) +
+  geom_line(linewidth = 0.7) +
+  scale_colour_viridis_d(name = NULL) +
+  labs(
+    title = "Inflation Over Time: Headline vs Core CPI",
+    x = NULL,
+    y = "Index (1982–84 = 100)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+
+# 3. 10Y–2Y spread plot
+p_spread <- df_inf |>
+  ggplot(aes(x = date, y = spread_10y_2y)) +
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.4) +
+  geom_line(colour = viridis(1), linewidth = 0.7) +
+  labs(
+    title = "10Y–2Y Treasury Yield Spread",
+    x = NULL,
+    y = "Spread (percentage points)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.minor = element_blank()
+  )
+
+# 4. Combine vertically
+p_inf / p_spread +
+  plot_layout(heights = c(2, 1))
+```
+
+## Inflation / Unemployment / Recession Interaction
+
+### Inflation vs Unemployment vs Recession (Multi-line)
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Calculate year-over-year inflation rates
+df_phillips <- master |>
+  arrange(date) |>
+  mutate(
+    # YoY inflation from CPI
+    cpi_yoy = (cpiaucsl / lag(cpiaucsl, 12) - 1) * 100,
+    # Unemployment rate (already in percentage)
+    unemployment = unrate
+  ) |>
+  select(date, cpi_yoy, unemployment, usrec) |>
+  filter(!is.na(cpi_yoy), !is.na(unemployment))
+
+# Identify recession periods for shading
+recessions_phillips <- df_phillips |>
+  filter(usrec == 1) |>
+  arrange(date) |>
+  mutate(
+    gap = as.numeric(date - lag(date)),
+    grp = cumsum(is.na(gap) | gap > 40)
+  ) |>
+  group_by(grp) |>
+  summarise(
+    start = min(date),
+    end = max(date),
+    .groups = "drop"
+  )
+
+# Create long format for multi-line plot
+df_phillips_long <- df_phillips |>
+  select(date, cpi_yoy, unemployment) |>
+  pivot_longer(
+    cols = c(cpi_yoy, unemployment),
+    names_to = "variable",
+    values_to = "value"
+  ) |>
+  mutate(
+    variable = factor(
+      variable,
+      levels = c("cpi_yoy", "unemployment"),
+      labels = c("CPI YoY Inflation (%)", "Unemployment Rate (%)")
+    )
+  )
+
+ggplot() +
+  # Recession shading
+  geom_rect(
+    data = recessions_phillips,
+    aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf),
+    inherit.aes = FALSE,
+    fill = "grey80",
+    alpha = 0.3
+  ) +
+  # Multi-line plot
+  geom_line(
+    data = df_phillips_long,
+    aes(x = date, y = value, colour = variable),
+    linewidth = 0.8
+  ) +
+  scale_colour_viridis_d(name = NULL) +
+  labs(
+    title = "Inflation vs Unemployment vs Recession Periods",
+    subtitle = "Year-over-year CPI inflation and unemployment rate over time",
+    x = NULL,
+    y = "Percentage (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: This plot reveals the relationship between inflation and unemployment over time, showing how these variables interact during different economic periods. The shaded recession periods help identify patterns where both variables may spike simultaneously or move in opposite directions, providing insights into the Phillips curve relationship and its breakdown during stagflationary periods.\]
+
+### D2. CPI vs Core CPI vs PCE Over Time
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Calculate YoY inflation rates for all three measures
+df_inflation_measures <- master |>
+  arrange(date) |>
+  mutate(
+    cpi_yoy = (cpiaucsl / lag(cpiaucsl, 12) - 1) * 100,
+    cpi_core_yoy = (cpilfesl / lag(cpilfesl, 12) - 1) * 100,
+    pce_yoy = (pcepi / lag(pcepi, 12) - 1) * 100
+  ) |>
+  select(date, cpi_yoy, cpi_core_yoy, pce_yoy) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "measure",
+    values_to = "inflation_rate"
+  ) |>
+  filter(!is.na(inflation_rate)) |>
+  mutate(
+    measure = factor(
+      measure,
+      levels = c("cpi_yoy", "cpi_core_yoy", "pce_yoy"),
+      labels = c("CPI (Headline)", "CPI (Core)", "PCE (Headline)")
+    )
+  )
+
+ggplot(df_inflation_measures, aes(x = date, y = inflation_rate, colour = measure)) +
+  geom_line(linewidth = 0.8) +
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.3, linetype = "dashed") +
+  scale_colour_viridis_d(name = "Inflation Measure") +
+  labs(
+    title = "CPI vs Core CPI vs PCE Inflation Over Time",
+    subtitle = "Year-over-year inflation rates for different price indices",
+    x = NULL,
+    y = "Year-over-Year Inflation (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: This comparison highlights the differences between headline and core inflation measures, as well as the divergence between CPI and PCE. Core CPI excludes volatile food and energy components, providing a smoother view of underlying inflation trends. PCE is the Federal Reserve's preferred measure and typically runs slightly lower than CPI due to methodological differences. The plot reveals periods where headline inflation diverges significantly from core, often driven by energy price shocks.\]
+
+### D3. Supply-Driven vs Demand-Driven Inflation vs Yields
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Create proxies for supply-driven and demand-driven inflation
+# Supply-driven: Energy prices (PPI Energy, CPI Energy)
+# Demand-driven: Core inflation (excludes energy/food)
+df_supply_demand <- master |>
+  arrange(date) |>
+  mutate(
+    # Supply-driven: Energy component YoY
+    supply_inflation = (cpiengsl / lag(cpiengsl, 12) - 1) * 100,
+    # Demand-driven: Core CPI YoY (excludes energy/food)
+    demand_inflation = (cpilfesl / lag(cpilfesl, 12) - 1) * 100,
+    # Use 10-year yield as representative
+    yield_10y = dgs10
+  ) |>
+  select(date, supply_inflation, demand_inflation, yield_10y) |>
+  filter(!is.na(supply_inflation), !is.na(demand_inflation), !is.na(yield_10y))
+
+# Create long format for inflation measures
+df_inf_long <- df_supply_demand |>
+  select(date, supply_inflation, demand_inflation) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "inflation_type",
+    values_to = "inflation_rate"
+  ) |>
+  mutate(
+    inflation_type = factor(
+      inflation_type,
+      levels = c("supply_inflation", "demand_inflation"),
+      labels = c("Supply-Driven (Energy)", "Demand-Driven (Core)")
+    )
+  )
+
+# Plot with dual y-axes using secondary axis
+p1 <- ggplot(df_inf_long, aes(x = date, y = inflation_rate, colour = inflation_type)) +
+  geom_line(linewidth = 0.8) +
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.3, linetype = "dashed") +
+  scale_colour_viridis_d(name = "Inflation Type") +
+  labs(
+    title = "Supply-Driven vs Demand-Driven Inflation vs Yields",
+    subtitle = "Energy-based (supply) vs Core (demand) inflation with 10-Year Treasury yield",
+    x = NULL,
+    y = "Year-over-Year Inflation (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+
+p2 <- ggplot(df_supply_demand, aes(x = date, y = yield_10y)) +
+  geom_line(colour = viridis(1, begin = 0.6), linewidth = 0.8) +
+  labs(
+    x = NULL,
+    y = "10-Year Yield (%)"
+  ) +
+  scale_y_continuous(labels = label_percent(scale = 0.01)) +
+  theme_minimal(base_size = 13) +
+  theme(
+    panel.grid.minor = element_blank(),
+    plot.background = element_rect(fill = "white", colour = NA)
+  )
+
+# Combine plots
+library(patchwork)
+p1 / p2 +
+  plot_layout(heights = c(2, 1))
+```
+
+**Inference:** \[Placeholder text: This analysis distinguishes between supply-side and demand-side inflation drivers. Supply-driven inflation, proxied by energy prices, shows high volatility and often spikes during oil shocks. Demand-driven inflation, measured by core CPI, reflects underlying economic conditions and monetary policy effects. The 10-year yield typically responds to both types of inflation, with supply shocks potentially having more transient impacts on yields compared to persistent demand-driven inflation. The relationship helps understand how different inflation sources affect bond markets.\]
+
+## E. Stagflation & Term Structure Shape
+
+### E1. Stagflation Periods: Inflation vs Unemployment
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Identify stagflation periods: high inflation + high unemployment
+df_stagflation <- master |>
+  arrange(date) |>
+  mutate(
+    cpi_yoy = (cpiaucsl / lag(cpiaucsl, 12) - 1) * 100,
+    unemployment = unrate
+  ) |>
+  select(date, cpi_yoy, unemployment, usrec) |>
+  filter(!is.na(cpi_yoy), !is.na(unemployment)) |>
+  mutate(
+    # Define stagflation: inflation > 5% and unemployment > 6%
+    is_stagflation = cpi_yoy > 5 & unemployment > 6
+  )
+
+# Create scatter plot with recession periods highlighted
+ggplot(df_stagflation, aes(x = unemployment, y = cpi_yoy)) +
+  geom_point(aes(colour = factor(usrec), size = is_stagflation), alpha = 0.6) +
+  geom_hline(yintercept = 5, colour = "red", linewidth = 0.5, linetype = "dashed", alpha = 0.7) +
+  geom_vline(xintercept = 6, colour = "red", linewidth = 0.5, linetype = "dashed", alpha = 0.7) +
+  scale_colour_manual(
+    name = "Recession",
+    values = c("0" = "grey60", "1" = "darkred"),
+    labels = c("0" = "No", "1" = "Yes")
+  ) +
+  scale_size_manual(
+    name = "Stagflation",
+    values = c("FALSE" = 1.5, "TRUE" = 3),
+    labels = c("FALSE" = "No", "TRUE" = "Yes")
+  ) +
+  labs(
+    title = "Stagflation Periods: Inflation vs Unemployment",
+    subtitle = "Quadrant with inflation > 5% and unemployment > 6% indicates stagflation conditions",
+    x = "Unemployment Rate (%)",
+    y = "CPI Year-over-Year Inflation (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "right",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: Stagflation represents the worst of both worlds: high inflation combined with high unemployment. This scatter plot identifies periods where both variables exceed typical thresholds (5% inflation and 6% unemployment). The 1970s are particularly notable for stagflation, challenging the traditional Phillips curve relationship. The plot reveals how economic conditions can deviate from the typical trade-off between inflation and unemployment, with important implications for monetary policy effectiveness.\]
+
+### E2. Dynamic Term-Structure Evolution (Heatmap)
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Prepare yield curve data for heatmap
+# Use key maturities: 3M, 2Y, 5Y, 10Y, 30Y
+df_yield_heatmap <- master |>
+  select(date, dgs3mo, dgs2, dgs5, dgs10, dgs30) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "maturity",
+    values_to = "yield"
+  ) |>
+  filter(!is.na(yield)) |>
+  mutate(
+    maturity = factor(
+      maturity,
+      levels = c("dgs3mo", "dgs2", "dgs5", "dgs10", "dgs30"),
+      labels = c("3M", "2Y", "5Y", "10Y", "30Y")
+    ),
+    year = year(date),
+    month = month(date)
+  ) |>
+  # Aggregate to quarterly for smoother visualization
+  mutate(
+    quarter = paste0(year, "-Q", ceiling(month / 3))
+  ) |>
+  group_by(quarter, maturity) |>
+  summarise(
+    yield = mean(yield, na.rm = TRUE),
+    .groups = "drop"
+  ) |>
+  # Convert quarter to date for ordering
+  mutate(
+    year_q = as.numeric(substr(quarter, 1, 4)) + (as.numeric(substr(quarter, 6, 6)) - 1) / 4
+  )
+
+# Create heatmap
+ggplot(df_yield_heatmap, aes(x = maturity, y = reorder(quarter, year_q), fill = yield)) +
+  geom_tile() +
+  scale_fill_viridis_c(name = "Yield (%)", option = "plasma", labels = label_percent(scale = 0.01)) +
+  labs(
+    title = "Dynamic Term-Structure Evolution: Yield Curve Heatmap",
+    subtitle = "Quarterly average yields across maturities, showing yield curve shape evolution over time",
+    x = "Maturity",
+    y = "Quarter"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y = element_text(size = 6),
+    panel.grid = element_blank(),
+    legend.position = "right"
+  ) +
+  # Show every 5th quarter label to reduce clutter
+  scale_y_discrete(breaks = function(x) x[seq(1, length(x), by = 10)])
+```
+
+**Inference:** \[Placeholder text: This heatmap visualizes the evolution of the yield curve shape over time. Warmer colors indicate higher yields. The horizontal patterns reveal periods of curve steepening (longer maturities much higher than shorter) versus flattening or inversion (longer maturities similar to or lower than shorter). Inversions appear as horizontal bands where shorter maturities (left) are warmer than longer maturities (right), which historically precede recessions. The visualization captures major monetary policy regimes and economic cycles.\]
+
+## F. Demographic Analysis
+
+### F1. Unemployment by Demographics
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Prepare demographic unemployment data
+df_demo_unemp <- master |>
+  select(
+    date,
+    unrate,           # Total
+    lns14000001,      # Men
+    lns14000002,      # Women
+    lns14000003,      # White
+    lns14000006,      # Black
+    lns14000009       # Hispanic
+  ) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "demographic",
+    values_to = "unemployment_rate"
+  ) |>
+  filter(!is.na(unemployment_rate)) |>
+  mutate(
+    demographic = factor(
+      demographic,
+      levels = c("unrate", "lns14000001", "lns14000002", "lns14000003", "lns14000006", "lns14000009"),
+      labels = c("Total", "Men", "Women", "White", "Black", "Hispanic")
+    )
+  )
+
+ggplot(df_demo_unemp, aes(x = date, y = unemployment_rate, colour = demographic)) +
+  geom_line(linewidth = 0.7, alpha = 0.8) +
+  scale_colour_viridis_d(name = "Demographic Group") +
+  labs(
+    title = "Unemployment Rate by Demographics",
+    subtitle = "Unemployment rates for different demographic groups over time",
+    x = NULL,
+    y = "Unemployment Rate (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: This plot reveals significant disparities in unemployment rates across demographic groups. Historically, Black and Hispanic workers have experienced consistently higher unemployment rates than White workers, reflecting structural inequalities in the labor market. Gender differences have evolved over time, with men and women showing varying patterns during different economic cycles. The plot highlights how recessions disproportionately affect certain demographic groups, with gaps often widening during economic downturns.\]
+
+### F2. Men vs Women Unemployment During Recessions
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Prepare men vs women data with recession indicator
+df_gender_recession <- master |>
+  select(date, lns14000001, lns14000002, usrec) |>
+  filter(!is.na(lns14000001), !is.na(lns14000002)) |>
+  pivot_longer(
+    cols = c(lns14000001, lns14000002),
+    names_to = "gender",
+    values_to = "unemployment_rate"
+  ) |>
+  mutate(
+    gender = factor(
+      gender,
+      levels = c("lns14000001", "lns14000002"),
+      labels = c("Men", "Women")
+    ),
+    is_recession = factor(usrec, levels = c(0, 1), labels = c("Expansion", "Recession"))
+  )
+
+# Identify recession periods for shading
+recessions_gender <- df_gender_recession |>
+  filter(usrec == 1) |>
+  distinct(date) |>
+  arrange(date) |>
+  mutate(
+    gap = as.numeric(date - lag(date)),
+    grp = cumsum(is.na(gap) | gap > 40)
+  ) |>
+  group_by(grp) |>
+  summarise(
+    start = min(date),
+    end = max(date),
+    .groups = "drop"
+  )
+
+ggplot() +
+  # Recession shading
+  geom_rect(
+    data = recessions_gender,
+    aes(xmin = start, xmax = end, ymin = -Inf, ymax = Inf),
+    inherit.aes = FALSE,
+    fill = "grey80",
+    alpha = 0.3
+  ) +
+  # Gender lines
+  geom_line(
+    data = df_gender_recession,
+    aes(x = date, y = unemployment_rate, colour = gender),
+    linewidth = 0.8
+  ) +
+  scale_colour_viridis_d(name = "Gender", begin = 0.2, end = 0.8) +
+  labs(
+    title = "Men vs Women Unemployment During Recessions",
+    subtitle = "Comparison of unemployment rates by gender, with recession periods shaded",
+    x = NULL,
+    y = "Unemployment Rate (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: This comparison reveals how men and women experience unemployment differently during economic cycles. Historically, men's unemployment has been more volatile and often spikes higher during recessions, particularly in manufacturing and construction sectors. Women's unemployment patterns have shown different dynamics, with some recessions affecting them more than others depending on the sectors impacted. The plot helps identify structural changes in the labor market and gender-based employment patterns over time.\]
+
+### F3. Younger vs Older Workers' Unemployment Patterns
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Prepare age-based unemployment data
+df_age_unemp <- master |>
+  select(
+    date,
+    lns14000012,      # 16-19 years
+    lns14000089,      # 20-24 years
+    lns14000025,      # 25-54 years (prime age)
+    lns14000036       # 55+ years
+  ) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "age_group",
+    values_to = "unemployment_rate"
+  ) |>
+  filter(!is.na(unemployment_rate)) |>
+  mutate(
+    age_group = factor(
+      age_group,
+      levels = c("lns14000012", "lns14000089", "lns14000025", "lns14000036"),
+      labels = c("16-19 years", "20-24 years", "25-54 years (Prime)", "55+ years")
+    )
+  )
+
+ggplot(df_age_unemp, aes(x = date, y = unemployment_rate, colour = age_group)) +
+  geom_line(linewidth = 0.7, alpha = 0.8) +
+  scale_colour_viridis_d(name = "Age Group") +
+  labs(
+    title = "Unemployment Patterns by Age Group",
+    subtitle = "Unemployment rates for different age cohorts over time",
+    x = NULL,
+    y = "Unemployment Rate (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: This plot reveals stark differences in unemployment rates across age groups. Younger workers (16-19 and 20-24) consistently experience much higher unemployment rates, reflecting their entry into the labor market, lower experience levels, and often part-time or seasonal employment patterns. Prime-age workers (25-54) typically have the lowest and most stable unemployment rates. Older workers (55+) show intermediate levels but may face challenges related to age discrimination and skill mismatches. During recessions, younger workers are disproportionately affected, with their unemployment rates spiking dramatically.\]
+
+### F4. Real Wage Inequality (High vs Low Income)
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Use Employment Cost Index as proxy for wages
+# Calculate real wage growth by deflating with CPI
+df_wages <- master |>
+  arrange(date) |>
+  mutate(
+    # Employment Cost Index (already an index)
+    eci = eciallciv,
+    # Calculate real ECI by deflating with CPI
+    # Use base period CPI (e.g., 1982-84 = 100) as reference
+    cpi_index = cpiaucsl,
+    # Real wage index = ECI / CPI * 100 (normalize to base period)
+    real_wage_index = (eci / cpi_index) * 100
+  ) |>
+  select(date, eci, real_wage_index) |>
+  filter(!is.na(eci), !is.na(real_wage_index)) |>
+  mutate(
+    # Calculate year-over-year growth rates
+    nominal_wage_growth = (eci / lag(eci, 12) - 1) * 100,
+    real_wage_growth = (real_wage_index / lag(real_wage_index, 12) - 1) * 100
+  ) |>
+  filter(!is.na(nominal_wage_growth), !is.na(real_wage_growth))
+
+# Note: ECI data is limited, so we show what's available
+# For a more complete analysis, we'd need wage data by income quintile
+df_wage_long <- df_wages |>
+  select(date, nominal_wage_growth, real_wage_growth) |>
+  pivot_longer(
+    cols = -date,
+    names_to = "wage_type",
+    values_to = "growth_rate"
+  ) |>
+  mutate(
+    wage_type = factor(
+      wage_type,
+      levels = c("nominal_wage_growth", "real_wage_growth"),
+      labels = c("Nominal Wage Growth", "Real Wage Growth (CPI-adjusted)")
+    )
+  )
+
+ggplot(df_wage_long, aes(x = date, y = growth_rate, colour = wage_type)) +
+  geom_line(linewidth = 0.8) +
+  geom_hline(yintercept = 0, colour = "black", linewidth = 0.4, linetype = "dashed") +
+  scale_colour_viridis_d(name = "Wage Measure") +
+  labs(
+    title = "Real Wage Growth Over Time",
+    subtitle = "Nominal vs inflation-adjusted wage growth using Employment Cost Index",
+    x = NULL,
+    y = "Year-over-Year Growth (%)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    panel.grid.minor = element_blank()
+  )
+```
+
+**Inference:** \[Placeholder text: This plot shows the difference between nominal and real wage growth. When real wage growth is negative, workers' purchasing power is declining even if their nominal wages are increasing. The gap between nominal and real wage growth represents the inflation tax on workers. Periods of high inflation can erode real wages significantly. Note that this uses aggregate Employment Cost Index data; a more detailed analysis would require wage data by income quintile to examine inequality between high and low earners, which would show how different income groups are affected differently by inflation and economic cycles.\]

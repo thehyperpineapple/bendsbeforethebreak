@@ -1,5 +1,293 @@
 # Data
 
-## Description
+## Data Collection
 
-## Missing value analysis
+The dataset for this project was collected from the Federal Reserve Economic Data (FRED) database, which provides comprehensive macroeconomic and financial time series data. The data collection process involved downloading multiple time series covering:
+
+### Data Sources
+
+1.  **Treasury Yield Curve Data**: Constant maturity rates for various maturities (3-month, 1-year, 2-year, 5-year, 7-year, 10-year, 20-year, 30-year)
+2.  **Recession Indicators**: NBER-defined recession periods (USREC, USRECM)
+3.  **Inflation Measures**:
+    -   Consumer Price Index (CPI): Headline, Core, Energy, Food & Beverages
+    -   Personal Consumption Expenditures (PCE): Headline and Core
+    -   Producer Price Index (PPI): Final Demand, Energy, Commodities
+4.  **Unemployment Data**:
+    -   Aggregate unemployment rate
+    -   By gender (Men, Women)
+    -   By race/ethnicity (White, Black, Hispanic)
+    -   By age groups (16-19, 20-24, 25-54, 55+)
+5.  **Inflation Expectations**:
+    -   Market-based (TIPS breakeven rates)
+    -   Survey-based (University of Michigan)
+6.  **Commodity Prices**: WTI Crude Oil
+7.  **Labor Costs**: Employment Cost Index
+
+### Collection Method
+
+Data was downloaded programmatically using Python scripts that accessed FRED's public CSV download endpoints. The collection script (`data_collection_cleaning.ipynb`) downloaded 42 different time series, with some series unavailable or discontinued (noted in the collection logs).
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(here)
+library(DT)
+
+# Load cleaned master dataset
+master <- read_csv("data/clean/master_df.csv") |>
+  clean_names() |>
+  mutate(date = as.Date(date))
+
+# Display dataset overview
+glimpse(master)
+```
+
+## Data Cleaning and Processing
+
+### Initial Data Structure
+
+The raw data files were stored as individual CSV files in the `data/raw/` directory, with each file containing a single time series from FRED. The files were then merged into a unified master dataset.
+
+### Cleaning Steps
+
+1.  **Date Alignment**: All series were merged on the date column, creating a monthly frequency dataset
+2.  **Time Period Selection**: Data was filtered to start from January 1954, when most macroeconomic series become available
+3.  **Missing Value Handling**:
+    -   Series with more than 95% missing values were excluded
+    -   Treasury yield series (DGS\*) were forward-filled (carried forward) to handle temporary gaps
+    -   Macroeconomic series were forward-filled to maintain continuity
+    -   Recession indicator (USREC) was filled with 0 for non-recession periods
+4.  **Final Dataset**: After cleaning, the master dataset contains 863 monthly observations and 35 variables
+
+```{r}
+# Dataset summary statistics
+cat("Dataset Dimensions:\n")
+cat("Rows (months):", nrow(master), "\n")
+cat("Columns (variables):", ncol(master), "\n")
+cat("\nDate Range:\n")
+cat("Start:", min(master$date), "\n")
+cat("End:", max(master$date), "\n")
+cat("Span:", as.numeric(max(master$date) - min(master$date)) / 365.25, "years\n")
+```
+
+### Missing Value Analysis
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+# Calculate missing value statistics
+missing_stats <- master |>
+  summarise(across(everything(), ~ sum(is.na(.x)))) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "missing_count") |>
+  mutate(
+    missing_pct = (missing_count / nrow(master)) * 100,
+    variable_clean = case_when(
+      variable == "dgs3mo" ~ "3-Month Treasury",
+      variable == "dgs1" ~ "1-Year Treasury",
+      variable == "dgs2" ~ "2-Year Treasury",
+      variable == "dgs5" ~ "5-Year Treasury",
+      variable == "dgs7" ~ "7-Year Treasury",
+      variable == "dgs10" ~ "10-Year Treasury",
+      variable == "dgs20" ~ "20-Year Treasury",
+      variable == "dgs30" ~ "30-Year Treasury",
+      variable == "usrec" ~ "Recession Indicator",
+      variable == "usrecm" ~ "Recession Indicator (Alt)",
+      variable == "cpiaucsl" ~ "CPI Headline",
+      variable == "cpilfesl" ~ "CPI Core",
+      variable == "cpiengsl" ~ "CPI Energy",
+      variable == "cpifabsl" ~ "CPI Food",
+      variable == "pcepi" ~ "PCE Headline",
+      variable == "pcepilfe" ~ "PCE Core",
+      variable == "ppifgs" ~ "PPI Final Demand",
+      variable == "ppieng" ~ "PPI Energy",
+      variable == "ppicmm" ~ "PPI Commodities",
+      variable == "unrate" ~ "Unemployment Rate",
+      variable == "lns14000001" ~ "Unemp: Men",
+      variable == "lns14000002" ~ "Unemp: Women",
+      variable == "lns14000003" ~ "Unemp: White",
+      variable == "lns14000006" ~ "Unemp: Black",
+      variable == "lns14000009" ~ "Unemp: Hispanic",
+      variable == "lns14000012" ~ "Unemp: 16-19",
+      variable == "lns14000089" ~ "Unemp: 20-24",
+      variable == "lns14000025" ~ "Unemp: 25-54",
+      variable == "lns14000036" ~ "Unemp: 55+",
+      variable == "t5yie" ~ "5Y Breakeven",
+      variable == "t10yie" ~ "10Y Breakeven",
+      variable == "t5yifr" ~ "5Y5Y Forward",
+      variable == "mich" ~ "Michigan Survey",
+      variable == "dcoilwtico" ~ "WTI Oil",
+      variable == "eciallciv" ~ "Employment Cost Index",
+      TRUE ~ variable
+    )
+  ) |>
+  arrange(desc(missing_pct))
+
+# Plot missing values
+ggplot(missing_stats, aes(x = reorder(variable_clean, missing_pct), y = missing_pct)) +
+  geom_col(fill = viridis(1), alpha = 0.8) +
+  coord_flip() +
+  labs(
+    title = "Missing Values by Variable",
+    subtitle = "Percentage of missing observations in master dataset",
+    x = "Variable",
+    y = "Missing Percentage (%)"
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.grid.minor = element_blank(),
+    axis.text.y = element_text(size = 8)
+  )
+```
+
+```{r}
+# Display missing value table
+missing_stats |>
+  select(variable_clean, missing_count, missing_pct) |>
+  filter(missing_pct > 0) |>
+  arrange(desc(missing_pct)) |>
+  head(15) |>
+  knitr::kable(
+    col.names = c("Variable", "Missing Count", "Missing %"),
+    digits = 1,
+    caption = "Top 15 Variables by Missing Data Percentage"
+  )
+```
+
+## Dataset Overview
+
+### Variable Categories
+
+The master dataset contains the following categories of variables:
+
+1.  **Treasury Yields** (8 variables): DGS3MO, DGS1, DGS2, DGS5, DGS7, DGS10, DGS20, DGS30
+2.  **Recession Indicators** (2 variables): USREC, USRECM
+3.  **Inflation Measures** (9 variables): CPI (headline, core, energy, food), PCE (headline, core), PPI (final demand, energy, commodities)
+4.  **Unemployment** (10 variables): Total, by gender (2), by race (3), by age (4)
+5.  **Inflation Expectations** (4 variables): T5YIE, T10YIE, T5YIFR, MICH
+6.  **Commodities** (1 variable): DCOILWTICO
+7.  **Labor Costs** (1 variable): ECIALLCIV
+
+### Data Quality Summary
+
+```{r}
+# Summary statistics for key variables
+key_vars <- c("dgs10", "dgs2", "dgs3mo", "unrate", "cpiaucsl", "cpilfesl", "pcepi")
+
+master |>
+  select(date, all_of(key_vars)) |>
+  summary() |>
+  print()
+```
+
+### Time Series Coverage
+
+```{r}
+library(tidyverse)
+library(viridis)
+
+# Create coverage plot showing when each variable has data
+coverage_data <- master |>
+  summarise(across(-date, ~ min(date[!is.na(.x)]), .names = "start_{.col}")) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "start_date") |>
+  mutate(
+    variable = str_remove(variable, "start_"),
+    variable_clean = case_when(
+      variable == "dgs3mo" ~ "3-Month Treasury",
+      variable == "dgs2" ~ "2-Year Treasury",
+      variable == "dgs10" ~ "10-Year Treasury",
+      variable == "unrate" ~ "Unemployment Rate",
+      variable == "cpiaucsl" ~ "CPI Headline",
+      variable == "cpilfesl" ~ "CPI Core",
+      variable == "pcepi" ~ "PCE Headline",
+      TRUE ~ variable
+    )
+  ) |>
+  filter(variable %in% key_vars) |>
+  arrange(start_date)
+
+ggplot(coverage_data, aes(x = start_date, y = reorder(variable_clean, start_date))) +
+  geom_point(size = 3, colour = viridis(1)) +
+  labs(
+    title = "Data Availability Start Dates for Key Variables",
+    subtitle = "Shows when each variable first has non-missing data",
+    x = "Start Date",
+    y = "Variable"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(panel.grid.minor = element_blank())
+```
+
+### Distribution of Key Variables
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(patchwork)
+
+# Distribution plots for key variables
+p1 <- master |>
+  ggplot(aes(x = dgs10)) +
+  geom_histogram(bins = 50, fill = viridis(1), alpha = 0.7) +
+  labs(title = "10-Year Treasury Yield", x = "Yield (%)", y = "Frequency") +
+  theme_minimal()
+
+p2 <- master |>
+  ggplot(aes(x = unrate)) +
+  geom_histogram(bins = 50, fill = viridis(1, begin = 0.3), alpha = 0.7) +
+  labs(title = "Unemployment Rate", x = "Rate (%)", y = "Frequency") +
+  theme_minimal()
+
+p3 <- master |>
+  filter(!is.na(cpiaucsl)) |>
+  mutate(cpi_yoy = (cpiaucsl / lag(cpiaucsl, 12) - 1) * 100) |>
+  filter(!is.na(cpi_yoy)) |>
+  ggplot(aes(x = cpi_yoy)) +
+  geom_histogram(bins = 50, fill = viridis(1, begin = 0.6), alpha = 0.7) +
+  labs(title = "CPI Year-over-Year Inflation", x = "Inflation (%)", y = "Frequency") +
+  theme_minimal()
+
+p1 / p2 / p3
+```
+
+### Correlation Matrix of Key Variables
+
+```{r}
+library(corrplot)
+
+# Calculate correlations for key variables
+cor_vars <- c("dgs10", "dgs2", "dgs3mo", "unrate", "cpiaucsl", "cpilfesl")
+cor_data <- master |>
+  select(all_of(cor_vars)) |>
+  cor(use = "pairwise.complete.obs")
+
+# Create correlation plot
+corrplot(
+  cor_data,
+  method = "color",
+  type = "upper",
+  order = "hclust",
+  tl.cex = 0.8,
+  tl.col = "black",
+  addCoef.col = "black",
+  number.cex = 0.7
+)
+```
+
+## Data Processing Notes
+
+### Forward-Filling Strategy
+
+The cleaning process used forward-filling (carry-forward) for missing values, which is appropriate for time series data where: - Treasury yields are relatively stable month-to-month - Macroeconomic indicators change gradually - Missing values often represent temporary data collection gaps rather than true missing observations
+
+### Limitations
+
+1.  **Early Period Coverage**: Some series (e.g., TIPS breakeven rates, some demographic unemployment data) have limited historical coverage
+2.  **Frequency**: All data is monthly, which may miss higher-frequency dynamics
+3.  **Missing Data**: Some variables (e.g., Employment Cost Index) have significant gaps, limiting their use in time series analysis
+4.  **Data Availability**: Some originally planned series (e.g., GSCPI, certain CPI/PCE components) were unavailable from FRED
+
+### Final Dataset
+
+The cleaned master dataset (`master_df.csv`) is saved in the `data/clean/` directory and serves as the primary data source for all analyses in this project.
