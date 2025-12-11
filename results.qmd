@@ -91,7 +91,7 @@ ggplot(yc_long, aes(x = date, y = yield, colour = maturity)) +
   )
 ```
 
-We plotted the historical path of yields from 3 months to 30 years to see how different maturities respond to economic shifts. You can see that short-term rates are much more sensitive to Fed policy, often spiking during tightening cycles. Long-term rates are more stable, driven by future growth expectations. When the short-term lines cross above the long-term ones, it flags a curve inversion which is a classic recession signal.
+We plotted the historical path of yields from 3 months to 30 years to see how different maturities respond to economic shifts. You can see that short-term rates are much more sensitive to Fed policy, often spiking during tightening cycles whie long-term rates are more stable, driven by future growth expectations. When the short-term lines cross above the long-term ones, it flags a **curve inversion** which is a classic recession signal. The bond yields gradually fell down primarily because of drops in market interest rates and increased demand for safe assets during economic uncertainity. US bond yields rose after 2020 primarily because of surging inflation, which peaked in 2022. To fight this, the Federal Reserve aggressively hiked interest rates. Yields were further pushed up by a strong economic recovery and increased government borrowing, both of which led investors to demand higher returns.
 
 ## Spreads with Recessions
 
@@ -151,6 +151,7 @@ ggplot() +
 Here we look at the difference between 10-year and 2-year yields. We included a zero line to easily spot inversions and shaded the recession periods in grey. We can observe that inversions are a flashing warning, having preceded every recession in the last half-century. It’s not always immediate (there is usually a 6–15 month lag) but the predictive power of the curve is undeniable.
 
 ### U.S. Yield Curve Spreads Over Time
+
 ```{r}
 # 1. Compute main spreads
 master_spreads <- master |>
@@ -200,6 +201,7 @@ ggplot(master_spreads, aes(x = date, y = spread, colour = spread_type)) +
 In this plot we compare the multiple spreads commonly used to evaluate recession risk. It shows which one tends to invert first and which is the strongest signal historically. It is a multi line time series plot and the zero line is for the conversion threshold. The time frequency of 10Y-3M is the **most reliable** and earliest predictor of recessions, the 10Y-2Y also predicts recessions but often inverts later and 5Y-2Y is prone to false positives, and when all spreads invert the recession risk becomes extremely high. This plot also is a signal as to why analysts look at multiple spreads and not just one
 
 ### Average Lead Time of Spread Inversions Before U.S. Recessions
+
 ```{r}
 
 # -----------------------------------------
@@ -482,7 +484,7 @@ p_inf / p_spread +
   plot_layout(heights = c(2, 1))
 ```
 
-This is two-panel visualization, the top headline is CPI vs Core CPI, and the bottom shows the 10Y-2Y spread. This allows for comparison of inflation regimes with yield curve behaviour. Here, we stacked a layout using patchwork, we also wanted to make sure that the spread uses a single viridis colour and zero line. This plot displays that high inflation regimes often precede flattening or inversion of the yield curve which corresponds to tightening cycles. The difference between headline and core CPI tells us whether inflation is supply driven or demand driven. The periods of high inflation like the 70s-80s shows us deep inversions. The inflation spikes in 2021-22 again corresponds to major tightening and curve flattening. This plot connects macro inflation regimes directly to market expectations embedded in the yield curve. 
+This is two-panel visualization, the top headline is CPI vs Core CPI, and the bottom shows the 10Y-2Y spread. This allows for comparison of inflation regimes with yield curve behaviour. Here, we stacked a layout using patchwork, we also wanted to make sure that the spread uses a single viridis colour and zero line. This plot displays that high inflation regimes often precede flattening or inversion of the yield curve which corresponds to tightening cycles. The difference between headline and core CPI tells us whether inflation is supply driven or demand driven. The periods of high inflation like the 70s-80s shows us deep inversions. The inflation spikes in 2021-22 again corresponds to major tightening and curve flattening. This plot connects macro inflation regimes directly to market expectations embedded in the yield curve.
 
 ## Inflation / Unemployment / Recession Interaction
 
@@ -855,7 +857,7 @@ ggplot(df_demo_unemp, aes(x = date, y = unemployment_rate, colour = demographic)
   )
 ```
 
-This multi-line plot reveals persistent labor market disparities with the shaded grey regions representing recessions. Black and Hispanic workers consistently face much higher unemployment than White workers (often double or more). These gaps exist even in good times, pointing to structural issues beyond economic cycles. To conclude, during recessions all groups suffer, but racial gaps widen, making things worse for already disadvantaged workers.
+This multi-line plot reveals persistent labor market disparities with the shaded grey regions representing recessions. Black and Hispanic workers consistently face much higher unemployment than White workers (often double or more). These gaps exist even in good times, pointing to structural issues beyond economic cycles. Additionaly, the spike of unemployment in 2020 was due to the COVID-19 pandemic era. To conclude, during recessions all groups suffer, but racial gaps widen, making things worse for already disadvantaged workers.
 
 ### Men vs Women Unemployment During Recessions
 
@@ -923,7 +925,7 @@ ggplot() +
   )
 ```
 
-In the 1970s-80s, men's unemployment spiked higher during recessions because they dominated manufacturing and construction. Women's unemployment was more stable, partly due to concentration in services and education. The 2008 recession changed this. Women's unemployment caught up and even exceeded men's, reflecting how the Great Recession hit services and government jobs. Recent patterns have converged as the economy became more balanced.
+In the 1970s-80s, men's unemployment spiked higher during recessions because they dominated manufacturing and construction. Women's unemployment was more stable, partly due to concentration in services and education. The 2008 recession changed this. Women's unemployment caught up and even exceeded men's, reflecting how the Great Recession hit services and government jobs. Recent patterns have converged as the economy became more balanced. It can also be observed that the pandemic affected both women and men equally in terms of unemployment
 
 ### Younger vs Older Workers' Unemployment Patterns During Recessions
 
@@ -975,4 +977,4 @@ ggplot(df_age_unemp, aes(x = date, y = unemployment_rate, colour = age_group)) +
   )
 ```
 
-This multi-line plot shows unemployment by age group. Teenagers (16-19) and young adults (20-24) consistently have much higher unemployment—often 15-20% even in good times, partly due to part-time work and being laid off first. Prime-age workers (25-54) fare best, usually staying under 5% in normal times. Older workers (55+) are in the middle but face longer job searches when unemployed. During recessions, the young get hit hardest—unemployment can spike to 25% or more while prime-age workers might only reach 8-10%.
+This multi-line plot shows unemployment by age group. Teenagers (16-19) and young adults (20-24) consistently have much higher unemployment—often 15-20% even in good times, partly due to part-time work and being laid off first. Prime-age workers (25-54) fare best, usually staying under 5% in normal times. Older workers (55+) are in the middle but face longer job searches when unemployed. During recessions, the young get hit hardest, unemployment can spike to 25% or more while prime-age workers might only reach 8-10%. They also seem to be more affected group during the pandemic.

@@ -66,13 +66,14 @@ The raw data files were stored as individual CSV files in the `data/raw/` direct
 
 ```{r}
 # Dataset summary statistics
-cat("Dataset Dimensions:\n")
-cat("Rows (months):", nrow(master), "\n")
-cat("Columns (variables):", ncol(master), "\n")
-cat("\nDate Range:\n")
-cat("Start:", as.character(min(master$date)), "\n")
-cat("End:  ", as.character(max(master$date)), "\n")
-cat("Span:", as.numeric(max(master$date) - min(master$date)) / 365.25, "years\n")
+cat(sprintf(
+  "Dataset Dimensions:\nRows (months): %d\nColumns (variables): %d\n\nDate Range:\nStart: %s\nEnd:   %s\nSpan:  %.2f years\n",
+  nrow(master),
+  ncol(master),
+  as.character(min(master$date)),
+  as.character(max(master$date)),
+  as.numeric(max(master$date) - min(master$date)) / 365.25
+))
 ```
 
 ### Missing Value Analysis
