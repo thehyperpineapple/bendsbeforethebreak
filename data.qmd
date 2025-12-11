@@ -25,7 +25,7 @@ The dataset for this project was collected from the Federal Reserve Economic Dat
 
 ### Collection Method
 
-Data was downloaded programmatically using Python scripts that accessed FRED's public CSV download endpoints. The collection script (`data_collection_cleaning.ipynb`) downloaded 42 different time series, with some series unavailable or discontinued (noted in the collection logs).
+Data was downloaded programmatically using Python scripts that accessed FRED's public CSV download endpoints. The collection script (`data_collection.py`) downloaded 42 different time series, with some series unavailable or discontinued.
 
 ```{r}
 #| setup: true
@@ -49,7 +49,7 @@ master <- read_csv("data/clean/master_df.csv") |>
 
 ### Initial Data Structure
 
-The raw data files were stored as individual CSV files in the `data/raw/` directory, with each file containing a single time series from FRED. The files were then merged into a unified master dataset.
+The raw data files were stored as individual CSV files in the `data/raw/` directory, with each file containing a single time series from FRED. The files were then merged into a unified master dataset through the `data_cleaning.py` script
 
 ### Cleaning Steps
 
@@ -140,21 +140,7 @@ ggplot(missing_stats, aes(x = reorder(variable_clean, missing_pct), y = missing_
   )
 ```
 
-**Inference:** Most variables have complete or near-complete data, which is great for analysis. The ones with higher missing percentages like TIPS breakeven rates (T10YIE, T5YIE, T5YIFR) and the Employment Cost Index are newer series that simply weren't collected in earlier decades. This makes sense historically; TIPS didn't exist until the late 1990s, and the ECI started in the 1980s. The oil price data (DCOILWTICO) also has gaps, likely due to market disruptions or data collection issues. For our analysis, we'll focus on variables with good coverage, and when we need the newer series, we'll work with the available time periods.
-
-```{r}
-# Display missing value table
-missing_stats |>
-  select(variable_clean, missing_count, missing_pct) |>
-  filter(missing_pct > 0) |>
-  arrange(desc(missing_pct)) |>
-  head(15) |>
-  knitr::kable(
-    col.names = c("Variable", "Missing Count", "Missing %"),
-    digits = 1,
-    caption = "Top 15 Variables by Missing Data Percentage"
-  )
-```
+**I**Most variables have complete or near-complete data, which is great for analysis. The ones with higher missing percentages like TIPS breakeven rates (T10YIE, T5YIE, T5YIFR) and the Employment Cost Index are newer series that simply weren't collected in earlier decades. This makes sense historically; TIPS didn't exist until the late 1990s, and the ECI started in the 1980s. The oil price data (DCOILWTICO) also has gaps, likely due to market disruptions or data collection issues. For our analysis, we'll focus on variables with good coverage, and when we need the newer series, we'll work with the available time periods.
 
 ## Dataset Overview
 
