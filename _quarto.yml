@@ -26,5 +26,5 @@ book:
 
 format:
   html:
-    theme: lux
+    theme: cosmo
     code-fold: true

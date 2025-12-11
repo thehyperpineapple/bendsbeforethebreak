@@ -3,6 +3,8 @@
 ```{r}
 #| setup: true
 #| include: false
+#| warning: false
+#| message: false
 library(tidyverse)
 library(janitor)
 library(here)
@@ -11,17 +13,15 @@ library(scales)
 library(zoo)
 library(patchwork)
 library(corrplot)
-
-# Load cleaned master dataset
-master <- read_csv("data/clean/master_df.csv") |>
-  clean_names() |>
-  mutate(date = as.Date(date))
 ```
 
 ## Yield Curve Snapshot
 
 ```{r}
-
+# Load cleaned master dataset
+master <- read_csv("data/clean/master_df.csv") |>
+  clean_names() |>
+  mutate(date = as.Date(date))
 yc <- master |>
   select(date, dgs3mo, dgs2, dgs5, dgs10, dgs30)
 # Pick the latest available month for snapshot

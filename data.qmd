@@ -30,6 +30,8 @@ Data was downloaded programmatically using Python scripts that accessed FRED's p
 ```{r}
 #| setup: true
 #| include: false
+#| warning: false
+#| message: false
 library(tidyverse)
 library(janitor)
 library(here)
