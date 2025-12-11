@@ -28,18 +28,21 @@ The dataset for this project was collected from the Federal Reserve Economic Dat
 Data was downloaded programmatically using Python scripts that accessed FRED's public CSV download endpoints. The collection script (`data_collection_cleaning.ipynb`) downloaded 42 different time series, with some series unavailable or discontinued (noted in the collection logs).
 
 ```{r}
+#| setup: true
+#| include: false
 library(tidyverse)
 library(janitor)
 library(here)
 library(DT)
+library(scales)
+library(patchwork)
+library(corrplot)
+library(gt)
 
 # Load cleaned master dataset
 master <- read_csv("data/clean/master_df.csv") |>
   clean_names() |>
   mutate(date = as.Date(date))
-
-# Display dataset overview
-glimpse(master)
 ```
 
 ## Data Cleaning and Processing
@@ -65,18 +68,14 @@ cat("Dataset Dimensions:\n")
 cat("Rows (months):", nrow(master), "\n")
 cat("Columns (variables):", ncol(master), "\n")
 cat("\nDate Range:\n")
-cat("Start:", min(master$date), "\n")
-cat("End:", max(master$date), "\n")
+cat("Start:", as.character(min(master$date)), "\n")
+cat("End:  ", as.character(max(master$date)), "\n")
 cat("Span:", as.numeric(max(master$date) - min(master$date)) / 365.25, "years\n")
 ```
 
 ### Missing Value Analysis
 
 ```{r}
-library(tidyverse)
-library(viridis)
-library(scales)
-
 # Calculate missing value statistics
 missing_stats <- master |>
   summarise(across(everything(), ~ sum(is.na(.x)))) |>
@@ -115,7 +114,7 @@ missing_stats <- master |>
       variable == "lns14000036" ~ "Unemp: 55+",
       variable == "t5yie" ~ "5Y Breakeven",
       variable == "t10yie" ~ "10Y Breakeven",
-      variable == "t5yifr" ~ "5Y5Y Forward",
+      variable == "t5yifr" ~ "5Y Forward",
       variable == "mich" ~ "Michigan Survey",
       variable == "dcoilwtico" ~ "WTI Oil",
       variable == "eciallciv" ~ "Employment Cost Index",
@@ -126,7 +125,7 @@ missing_stats <- master |>
 
 # Plot missing values
 ggplot(missing_stats, aes(x = reorder(variable_clean, missing_pct), y = missing_pct)) +
-  geom_col(fill = viridis(1), alpha = 0.8) +
+  geom_col(fill = "steelblue", alpha = 0.8) +
   coord_flip() +
   labs(
     title = "Missing Values by Variable",
@@ -140,6 +139,8 @@ ggplot(missing_stats, aes(x = reorder(variable_clean, missing_pct), y = missing_
     axis.text.y = element_text(size = 8)
   )
 ```
+
+**Inference:** Most variables have complete or near-complete data, which is great for analysis. The ones with higher missing percentages like TIPS breakeven rates (T10YIE, T5YIE, T5YIFR) and the Employment Cost Index are newer series that simply weren't collected in earlier decades. This makes sense historically; TIPS didn't exist until the late 1990s, and the ECI started in the 1980s. The oil price data (DCOILWTICO) also has gaps, likely due to market disruptions or data collection issues. For our analysis, we'll focus on variables with good coverage, and when we need the newer series, we'll work with the available time periods.
 
 ```{r}
 # Display missing value table
@@ -169,25 +170,10 @@ The master dataset contains the following categories of variables:
 6.  **Commodities** (1 variable): DCOILWTICO
 7.  **Labor Costs** (1 variable): ECIALLCIV
 
-### Data Quality Summary
-
-```{r}
-# Summary statistics for key variables
-key_vars <- c("dgs10", "dgs2", "dgs3mo", "unrate", "cpiaucsl", "cpilfesl", "pcepi")
-
-master |>
-  select(date, all_of(key_vars)) |>
-  summary() |>
-  print()
-```
-
 ### Time Series Coverage
 
 ```{r}
-library(tidyverse)
-library(viridis)
-
-# Create coverage plot showing when each variable has data
+# Create Cleveland dot plot showing when each variable has data (ALL variables)
 coverage_data <- master |>
   summarise(across(-date, ~ min(date[!is.na(.x)]), .names = "start_{.col}")) |>
   pivot_longer(everything(), names_to = "variable", values_to = "start_date") |>
@@ -195,85 +181,155 @@ coverage_data <- master |>
     variable = str_remove(variable, "start_"),
     variable_clean = case_when(
       variable == "dgs3mo" ~ "3-Month Treasury",
+      variable == "dgs1" ~ "1-Year Treasury",
       variable == "dgs2" ~ "2-Year Treasury",
+      variable == "dgs5" ~ "5-Year Treasury",
+      variable == "dgs7" ~ "7-Year Treasury",
       variable == "dgs10" ~ "10-Year Treasury",
-      variable == "unrate" ~ "Unemployment Rate",
+      variable == "dgs20" ~ "20-Year Treasury",
+      variable == "dgs30" ~ "30-Year Treasury",
+      variable == "usrec" ~ "Recession Indicator",
+      variable == "usrecm" ~ "Recession Indicator (Alt)",
       variable == "cpiaucsl" ~ "CPI Headline",
       variable == "cpilfesl" ~ "CPI Core",
+      variable == "cpiengsl" ~ "CPI Energy",
+      variable == "cpifabsl" ~ "CPI Food",
       variable == "pcepi" ~ "PCE Headline",
+      variable == "pcepilfe" ~ "PCE Core",
+      variable == "ppifgs" ~ "PPI Final Demand",
+      variable == "ppieng" ~ "PPI Energy",
+      variable == "ppicmm" ~ "PPI Commodities",
+      variable == "unrate" ~ "Unemployment Rate",
+      variable == "lns14000001" ~ "Unemployment: Men",
+      variable == "lns14000002" ~ "Unemployment: Women",
+      variable == "lns14000003" ~ "Unemployment: White",
+      variable == "lns14000006" ~ "Unemployment: Black",
+      variable == "lns14000009" ~ "Unemployment: Hispanic",
+      variable == "lns14000012" ~ "Unemployment: 16-19",
+      variable == "lns14000089" ~ "Unemployment: 20-24",
+      variable == "lns14000025" ~ "Unemployment: 25-54",
+      variable == "lns14000036" ~ "Unemployment: 55+",
+      variable == "t5yie" ~ "5-Year Breakeven",
+      variable == "t10yie" ~ "10-Year Breakeven",
+      variable == "t5yifr" ~ "5-Year Forward",
+      variable == "mich" ~ "Michigan Survey",
+      variable == "dcoilwtico" ~ "WTI Oil",
+      variable == "eciallciv" ~ "Employment Cost Index",
       TRUE ~ variable
     )
   ) |>
-  filter(variable %in% key_vars) |>
   arrange(start_date)
 
+# Cleveland dot plot
 ggplot(coverage_data, aes(x = start_date, y = reorder(variable_clean, start_date))) +
-  geom_point(size = 3, colour = viridis(1)) +
+  geom_point(size = 2, colour = "steelblue") +
+  geom_segment(aes(x = start_date, xend = start_date, y = reorder(variable_clean, start_date), yend = reorder(variable_clean, start_date)), 
+               colour = "steelblue", linewidth = 0.3) +
   labs(
-    title = "Data Availability Start Dates for Key Variables",
+    title = "Data Availability Start Dates for All Variables",
     subtitle = "Shows when each variable first has non-missing data",
     x = "Start Date",
-    y = "Variable"
+    y = NULL
   ) +
-  theme_minimal(base_size = 12) +
-  theme(panel.grid.minor = element_blank())
+  theme_minimal(base_size = 11) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.y = element_line(colour = "grey90"),
+    axis.text.y = element_text(size = 7)
+  )
 ```
+
+**Inference:** This Cleveland dot plot shows when each variable starts having data. Most of our core series (unemployment, CPI, and Treasury yields) begin around 1954. Newer series like TIPS break-even rates and the Employment Cost Index start much later, which explains their higher missing percentages.
 
 ### Distribution of Key Variables
 
 ```{r}
-library(tidyverse)
-library(viridis)
-library(patchwork)
+# Distribution plots for key variables with normal distribution curves
+# 10-Year Treasury Yield
+dgs10_data <- master |> filter(!is.na(dgs10))
+dgs10_mean <- mean(dgs10_data$dgs10, na.rm = TRUE)
+dgs10_sd <- sd(dgs10_data$dgs10, na.rm = TRUE)
 
-# Distribution plots for key variables
 p1 <- master |>
   ggplot(aes(x = dgs10)) +
-  geom_histogram(bins = 50, fill = viridis(1), alpha = 0.7) +
-  labs(title = "10-Year Treasury Yield", x = "Yield (%)", y = "Frequency") +
+  geom_histogram(aes(y = after_stat(density)), bins = 50, fill = "steelblue", alpha = 0.7) +
+  stat_function(fun = dnorm, args = list(mean = dgs10_mean, sd = dgs10_sd), 
+                colour = "darkblue", linewidth = 1) +
+  labs(title = "10-Year Treasury Yield", x = "Yield (%)", y = "Density") +
   theme_minimal()
+
+# Unemployment Rate
+unrate_mean <- mean(master$unrate, na.rm = TRUE)
+unrate_sd <- sd(master$unrate, na.rm = TRUE)
 
 p2 <- master |>
   ggplot(aes(x = unrate)) +
-  geom_histogram(bins = 50, fill = viridis(1, begin = 0.3), alpha = 0.7) +
-  labs(title = "Unemployment Rate", x = "Rate (%)", y = "Frequency") +
+  geom_histogram(aes(y = after_stat(density)), bins = 50, fill = "darkgreen", alpha = 0.7) +
+  stat_function(fun = dnorm, args = list(mean = unrate_mean, sd = unrate_sd), 
+                colour = "darkgreen", linewidth = 1) +
+  labs(title = "Unemployment Rate", x = "Rate (%)", y = "Density") +
   theme_minimal()
 
-p3 <- master |>
+# CPI Year-over-Year Inflation
+cpi_yoy_data <- master |>
   filter(!is.na(cpiaucsl)) |>
   mutate(cpi_yoy = (cpiaucsl / lag(cpiaucsl, 12) - 1) * 100) |>
-  filter(!is.na(cpi_yoy)) |>
+  filter(!is.na(cpi_yoy))
+cpi_yoy_mean <- mean(cpi_yoy_data$cpi_yoy, na.rm = TRUE)
+cpi_yoy_sd <- sd(cpi_yoy_data$cpi_yoy, na.rm = TRUE)
+
+p3 <- cpi_yoy_data |>
   ggplot(aes(x = cpi_yoy)) +
-  geom_histogram(bins = 50, fill = viridis(1, begin = 0.6), alpha = 0.7) +
-  labs(title = "CPI Year-over-Year Inflation", x = "Inflation (%)", y = "Frequency") +
+  geom_histogram(aes(y = after_stat(density)), bins = 50, fill = "darkred", alpha = 0.7) +
+  stat_function(fun = dnorm, args = list(mean = cpi_yoy_mean, sd = cpi_yoy_sd), 
+                colour = "darkred", linewidth = 1) +
+  labs(title = "CPI Year-over-Year Inflation", x = "Inflation (%)", y = "Density") +
   theme_minimal()
 
 p1 / p2 / p3
 ```
 
+**Inference:** These histograms give us a quick sense of what "normal" looks like for our key variables. The 10-year Treasury yield is pretty spread out, ranging from near zero (recent years) to over 15% (early 1980s), with most values clustering around 4-6%. Unemployment shows a right-skewed distribution most of the time it's below 6%, but we do see those painful spikes during recessions. The inflation distribution is interesting too; it's centered around 2-3% but has a long tail on the right from those high-inflation periods in the 1970s and early 1980s. This tells us our dataset captures both normal times and extreme events, which is exactly what we need.
+
 ### Correlation Matrix of Key Variables
 
 ```{r}
-library(corrplot)
-
 # Calculate correlations for key variables
 cor_vars <- c("dgs10", "dgs2", "dgs3mo", "unrate", "cpiaucsl", "cpilfesl")
 cor_data <- master |>
   select(all_of(cor_vars)) |>
   cor(use = "pairwise.complete.obs")
 
-# Create correlation plot
+# Create full names for labels
+full_names <- c(
+  "dgs10" = "10-Year Treasury Yield",
+  "dgs2" = "2-Year Treasury Yield",
+  "dgs3mo" = "3-Month Treasury Yield",
+  "unrate" = "Unemployment Rate",
+  "cpiaucsl" = "CPI Headline",
+  "cpilfesl" = "CPI Core"
+)
+
+# Rename rows and columns
+rownames(cor_data) <- full_names[rownames(cor_data)]
+colnames(cor_data) <- full_names[colnames(cor_data)]
+
+# Create correlation plot with same orientation on both axes
 corrplot(
   cor_data,
   method = "color",
-  type = "upper",
+  type = "full",
   order = "hclust",
   tl.cex = 0.8,
   tl.col = "black",
+  tl.srt = 45,  # Rotate labels 45 degrees
   addCoef.col = "black",
-  number.cex = 0.7
+  number.cex = 0.7,
+  diag = TRUE
 )
 ```
+
+**Inference:** The correlation matrix reveals some expected relationships. Treasury yields at different maturities are highly correlated (0.8-0.9), which makes sense as they're all responding to similar economic forces. CPI headline and core are very closely related (0.99), as expected. Interestingly, yields and inflation show moderate positive correlation, which reinforces the idea that higher inflation expectations push bond yields up. What's also interesting is that we don't see strong negative correlations here unemployment doesn't correlate strongly with yields or inflation in this simple view, but that's probably because the relationship is more complex and time-varying. The **Phillips curve** relationship (negative correlation between unemployment and inflation) might be masked by the long time period or might only appear during specific economic regimes. The clustering in the plot groups similar variables together, which helps us understand the structure of our data.
 
 ## Data Processing Notes
 
