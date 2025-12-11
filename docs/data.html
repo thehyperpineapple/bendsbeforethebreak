@@ -260,14 +260,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="collection-method" class="level3" data-number="2.1.2">
 <h3 data-number="2.1.2" class="anchored" data-anchor-id="collection-method"><span class="header-section-number">2.1.2</span> Collection Method</h3>
-<p>Data was downloaded programmatically using Python scripts that accessed FRED’s public CSV download endpoints. The collection script (<code>data_collection_cleaning.ipynb</code>) downloaded 42 different time series, with some series unavailable or discontinued (noted in the collection logs).</p>
+<p>Data was downloaded programmatically using Python scripts that accessed FRED’s public CSV download endpoints. The collection script (<code>data_collection.py</code>) downloaded 42 different time series, with some series unavailable or discontinued.</p>
 </section>
 </section>
 <section id="data-cleaning-and-processing" class="level2" data-number="2.2">
 <h2 data-number="2.2" class="anchored" data-anchor-id="data-cleaning-and-processing"><span class="header-section-number">2.2</span> Data Cleaning and Processing</h2>
 <section id="initial-data-structure" class="level3" data-number="2.2.1">
 <h3 data-number="2.2.1" class="anchored" data-anchor-id="initial-data-structure"><span class="header-section-number">2.2.1</span> Initial Data Structure</h3>
-<p>The raw data files were stored as individual CSV files in the <code>data/raw/</code> directory, with each file containing a single time series from FRED. The files were then merged into a unified master dataset.</p>
+<p>The raw data files were stored as individual CSV files in the <code>data/raw/</code> directory, with each file containing a single time series from FRED. The files were then merged into a unified master dataset through the <code>data_cleaning.py</code> script</p>
 </section>
 <section id="cleaning-steps" class="level3" data-number="2.2.2">
 <h3 data-number="2.2.2" class="anchored" data-anchor-id="cleaning-steps"><span class="header-section-number">2.2.2</span> Cleaning Steps</h3>
@@ -414,111 +414,6 @@ Date Range:</code></pre>
 </div>
 </div>
 <p><strong>Inference:</strong> Most variables have complete or near-complete data, which is great for analysis. The ones with higher missing percentages like TIPS breakeven rates (T10YIE, T5YIE, T5YIFR) and the Employment Cost Index are newer series that simply weren’t collected in earlier decades. This makes sense historically; TIPS didn’t exist until the late 1990s, and the ECI started in the 1980s. The oil price data (DCOILWTICO) also has gaps, likely due to market disruptions or data collection issues. For our analysis, we’ll focus on variables with good coverage, and when we need the newer series, we’ll work with the available time periods.</p>
-<div class="cell">
-<details class="code-fold">
-<summary>Code</summary>
-<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Display missing value table</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>missing_stats <span class="sc">|&gt;</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(variable_clean, missing_count, missing_pct) <span class="sc">|&gt;</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(missing_pct <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">|&gt;</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(<span class="fu">desc</span>(missing_pct)) <span class="sc">|&gt;</span></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>(<span class="dv">15</span>) <span class="sc">|&gt;</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  knitr<span class="sc">::</span><span class="fu">kable</span>(</span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">col.names =</span> <span class="fu">c</span>(<span class="st">"Variable"</span>, <span class="st">"Missing Count"</span>, <span class="st">"Missing %"</span>),</span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">digits =</span> <span class="dv">1</span>,</span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">caption =</span> <span class="st">"Top 15 Variables by Missing Data Percentage"</span></span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</details>
-<div class="cell-output-display">
-<table class="caption-top table table-sm table-striped small">
-<caption>Top 15 Variables by Missing Data Percentage</caption>
-<thead>
-<tr class="header">
-<th style="text-align: left;">Variable</th>
-<th style="text-align: right;">Missing Count</th>
-<th style="text-align: right;">Missing %</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">10Y Breakeven</td>
-<td style="text-align: right;">588</td>
-<td style="text-align: right;">68.1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">5Y Forward</td>
-<td style="text-align: right;">588</td>
-<td style="text-align: right;">68.1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">5Y Breakeven</td>
-<td style="text-align: right;">588</td>
-<td style="text-align: right;">68.1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Employment Cost Index</td>
-<td style="text-align: right;">564</td>
-<td style="text-align: right;">65.4</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">WTI Oil</td>
-<td style="text-align: right;">384</td>
-<td style="text-align: right;">44.5</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">3-Month Treasury</td>
-<td style="text-align: right;">332</td>
-<td style="text-align: right;">38.5</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Michigan Survey</td>
-<td style="text-align: right;">288</td>
-<td style="text-align: right;">33.4</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">30-Year Treasury</td>
-<td style="text-align: right;">277</td>
-<td style="text-align: right;">32.1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">2-Year Treasury</td>
-<td style="text-align: right;">269</td>
-<td style="text-align: right;">31.2</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Unemp: Hispanic</td>
-<td style="text-align: right;">230</td>
-<td style="text-align: right;">26.7</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">Unemp: Black</td>
-<td style="text-align: right;">216</td>
-<td style="text-align: right;">25.0</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">7-Year Treasury</td>
-<td style="text-align: right;">186</td>
-<td style="text-align: right;">21.6</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">CPI Food</td>
-<td style="text-align: right;">156</td>
-<td style="text-align: right;">18.1</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">10-Year Treasury</td>
-<td style="text-align: right;">96</td>
-<td style="text-align: right;">11.1</td>
-</tr>
-<tr class="odd">
-<td style="text-align: left;">1-Year Treasury</td>
-<td style="text-align: right;">96</td>
-<td style="text-align: right;">11.1</td>
-</tr>
-</tbody>
-</table>
-</div>
-</div>
 </section>
 </section>
 <section id="dataset-overview" class="level2" data-number="2.3">
@@ -541,75 +436,75 @@ Date Range:</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create Cleveland dot plot showing when each variable has data (ALL variables)</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>coverage_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="sc">-</span>date, <span class="sc">~</span> <span class="fu">min</span>(date[<span class="sc">!</span><span class="fu">is.na</span>(.x)]), <span class="at">.names =</span> <span class="st">"start_{.col}"</span>)) <span class="sc">|&gt;</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"start_date"</span>) <span class="sc">|&gt;</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">variable =</span> <span class="fu">str_remove</span>(variable, <span class="st">"start_"</span>),</span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">variable_clean =</span> <span class="fu">case_when</span>(</span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs3mo"</span> <span class="sc">~</span> <span class="st">"3-Month Treasury"</span>,</span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs1"</span> <span class="sc">~</span> <span class="st">"1-Year Treasury"</span>,</span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs2"</span> <span class="sc">~</span> <span class="st">"2-Year Treasury"</span>,</span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs5"</span> <span class="sc">~</span> <span class="st">"5-Year Treasury"</span>,</span>
-<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs7"</span> <span class="sc">~</span> <span class="st">"7-Year Treasury"</span>,</span>
-<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs10"</span> <span class="sc">~</span> <span class="st">"10-Year Treasury"</span>,</span>
-<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs20"</span> <span class="sc">~</span> <span class="st">"20-Year Treasury"</span>,</span>
-<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs30"</span> <span class="sc">~</span> <span class="st">"30-Year Treasury"</span>,</span>
-<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"usrec"</span> <span class="sc">~</span> <span class="st">"Recession Indicator"</span>,</span>
-<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"usrecm"</span> <span class="sc">~</span> <span class="st">"Recession Indicator (Alt)"</span>,</span>
-<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpiaucsl"</span> <span class="sc">~</span> <span class="st">"CPI Headline"</span>,</span>
-<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpilfesl"</span> <span class="sc">~</span> <span class="st">"CPI Core"</span>,</span>
-<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpiengsl"</span> <span class="sc">~</span> <span class="st">"CPI Energy"</span>,</span>
-<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpifabsl"</span> <span class="sc">~</span> <span class="st">"CPI Food"</span>,</span>
-<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"pcepi"</span> <span class="sc">~</span> <span class="st">"PCE Headline"</span>,</span>
-<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"pcepilfe"</span> <span class="sc">~</span> <span class="st">"PCE Core"</span>,</span>
-<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"ppifgs"</span> <span class="sc">~</span> <span class="st">"PPI Final Demand"</span>,</span>
-<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"ppieng"</span> <span class="sc">~</span> <span class="st">"PPI Energy"</span>,</span>
-<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"ppicmm"</span> <span class="sc">~</span> <span class="st">"PPI Commodities"</span>,</span>
-<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"unrate"</span> <span class="sc">~</span> <span class="st">"Unemployment Rate"</span>,</span>
-<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000001"</span> <span class="sc">~</span> <span class="st">"Unemployment: Men"</span>,</span>
-<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000002"</span> <span class="sc">~</span> <span class="st">"Unemployment: Women"</span>,</span>
-<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000003"</span> <span class="sc">~</span> <span class="st">"Unemployment: White"</span>,</span>
-<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000006"</span> <span class="sc">~</span> <span class="st">"Unemployment: Black"</span>,</span>
-<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000009"</span> <span class="sc">~</span> <span class="st">"Unemployment: Hispanic"</span>,</span>
-<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000012"</span> <span class="sc">~</span> <span class="st">"Unemployment: 16-19"</span>,</span>
-<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000089"</span> <span class="sc">~</span> <span class="st">"Unemployment: 20-24"</span>,</span>
-<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000025"</span> <span class="sc">~</span> <span class="st">"Unemployment: 25-54"</span>,</span>
-<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000036"</span> <span class="sc">~</span> <span class="st">"Unemployment: 55+"</span>,</span>
-<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"t5yie"</span> <span class="sc">~</span> <span class="st">"5-Year Breakeven"</span>,</span>
-<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"t10yie"</span> <span class="sc">~</span> <span class="st">"10-Year Breakeven"</span>,</span>
-<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"t5yifr"</span> <span class="sc">~</span> <span class="st">"5-Year Forward"</span>,</span>
-<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"mich"</span> <span class="sc">~</span> <span class="st">"Michigan Survey"</span>,</span>
-<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dcoilwtico"</span> <span class="sc">~</span> <span class="st">"WTI Oil"</span>,</span>
-<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"eciallciv"</span> <span class="sc">~</span> <span class="st">"Employment Cost Index"</span>,</span>
-<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> variable</span>
-<span id="cb17-44"><a href="#cb17-44" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb17-45"><a href="#cb17-45" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
-<span id="cb17-46"><a href="#cb17-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(start_date)</span>
-<span id="cb17-47"><a href="#cb17-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-48"><a href="#cb17-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Cleveland dot plot</span></span>
-<span id="cb17-49"><a href="#cb17-49" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(coverage_data, <span class="fu">aes</span>(<span class="at">x =</span> start_date, <span class="at">y =</span> <span class="fu">reorder</span>(variable_clean, start_date))) <span class="sc">+</span></span>
-<span id="cb17-50"><a href="#cb17-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
-<span id="cb17-51"><a href="#cb17-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">x =</span> start_date, <span class="at">xend =</span> start_date, <span class="at">y =</span> <span class="fu">reorder</span>(variable_clean, start_date), <span class="at">yend =</span> <span class="fu">reorder</span>(variable_clean, start_date)), </span>
-<span id="cb17-52"><a href="#cb17-52" aria-hidden="true" tabindex="-1"></a>               <span class="at">colour =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
-<span id="cb17-53"><a href="#cb17-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb17-54"><a href="#cb17-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Data Availability Start Dates for All Variables"</span>,</span>
-<span id="cb17-55"><a href="#cb17-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Shows when each variable first has non-missing data"</span>,</span>
-<span id="cb17-56"><a href="#cb17-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Start Date"</span>,</span>
-<span id="cb17-57"><a href="#cb17-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="cn">NULL</span></span>
-<span id="cb17-58"><a href="#cb17-58" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb17-59"><a href="#cb17-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
-<span id="cb17-60"><a href="#cb17-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb17-61"><a href="#cb17-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
-<span id="cb17-62"><a href="#cb17-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major.y =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"grey90"</span>),</span>
-<span id="cb17-63"><a href="#cb17-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">7</span>)</span>
-<span id="cb17-64"><a href="#cb17-64" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create Cleveland dot plot showing when each variable has data (ALL variables)</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>coverage_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="fu">across</span>(<span class="sc">-</span>date, <span class="sc">~</span> <span class="fu">min</span>(date[<span class="sc">!</span><span class="fu">is.na</span>(.x)]), <span class="at">.names =</span> <span class="st">"start_{.col}"</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="fu">everything</span>(), <span class="at">names_to =</span> <span class="st">"variable"</span>, <span class="at">values_to =</span> <span class="st">"start_date"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">variable =</span> <span class="fu">str_remove</span>(variable, <span class="st">"start_"</span>),</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">variable_clean =</span> <span class="fu">case_when</span>(</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs3mo"</span> <span class="sc">~</span> <span class="st">"3-Month Treasury"</span>,</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs1"</span> <span class="sc">~</span> <span class="st">"1-Year Treasury"</span>,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs2"</span> <span class="sc">~</span> <span class="st">"2-Year Treasury"</span>,</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs5"</span> <span class="sc">~</span> <span class="st">"5-Year Treasury"</span>,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs7"</span> <span class="sc">~</span> <span class="st">"7-Year Treasury"</span>,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs10"</span> <span class="sc">~</span> <span class="st">"10-Year Treasury"</span>,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs20"</span> <span class="sc">~</span> <span class="st">"20-Year Treasury"</span>,</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dgs30"</span> <span class="sc">~</span> <span class="st">"30-Year Treasury"</span>,</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"usrec"</span> <span class="sc">~</span> <span class="st">"Recession Indicator"</span>,</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"usrecm"</span> <span class="sc">~</span> <span class="st">"Recession Indicator (Alt)"</span>,</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpiaucsl"</span> <span class="sc">~</span> <span class="st">"CPI Headline"</span>,</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpilfesl"</span> <span class="sc">~</span> <span class="st">"CPI Core"</span>,</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpiengsl"</span> <span class="sc">~</span> <span class="st">"CPI Energy"</span>,</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"cpifabsl"</span> <span class="sc">~</span> <span class="st">"CPI Food"</span>,</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"pcepi"</span> <span class="sc">~</span> <span class="st">"PCE Headline"</span>,</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"pcepilfe"</span> <span class="sc">~</span> <span class="st">"PCE Core"</span>,</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"ppifgs"</span> <span class="sc">~</span> <span class="st">"PPI Final Demand"</span>,</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"ppieng"</span> <span class="sc">~</span> <span class="st">"PPI Energy"</span>,</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"ppicmm"</span> <span class="sc">~</span> <span class="st">"PPI Commodities"</span>,</span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"unrate"</span> <span class="sc">~</span> <span class="st">"Unemployment Rate"</span>,</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000001"</span> <span class="sc">~</span> <span class="st">"Unemployment: Men"</span>,</span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000002"</span> <span class="sc">~</span> <span class="st">"Unemployment: Women"</span>,</span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000003"</span> <span class="sc">~</span> <span class="st">"Unemployment: White"</span>,</span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000006"</span> <span class="sc">~</span> <span class="st">"Unemployment: Black"</span>,</span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000009"</span> <span class="sc">~</span> <span class="st">"Unemployment: Hispanic"</span>,</span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000012"</span> <span class="sc">~</span> <span class="st">"Unemployment: 16-19"</span>,</span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000089"</span> <span class="sc">~</span> <span class="st">"Unemployment: 20-24"</span>,</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000025"</span> <span class="sc">~</span> <span class="st">"Unemployment: 25-54"</span>,</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"lns14000036"</span> <span class="sc">~</span> <span class="st">"Unemployment: 55+"</span>,</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"t5yie"</span> <span class="sc">~</span> <span class="st">"5-Year Breakeven"</span>,</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"t10yie"</span> <span class="sc">~</span> <span class="st">"10-Year Breakeven"</span>,</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"t5yifr"</span> <span class="sc">~</span> <span class="st">"5-Year Forward"</span>,</span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"mich"</span> <span class="sc">~</span> <span class="st">"Michigan Survey"</span>,</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"dcoilwtico"</span> <span class="sc">~</span> <span class="st">"WTI Oil"</span>,</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>      variable <span class="sc">==</span> <span class="st">"eciallciv"</span> <span class="sc">~</span> <span class="st">"Employment Cost Index"</span>,</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> variable</span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">arrange</span>(start_date)</span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a><span class="co"># Cleveland dot plot</span></span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(coverage_data, <span class="fu">aes</span>(<span class="at">x =</span> start_date, <span class="at">y =</span> <span class="fu">reorder</span>(variable_clean, start_date))) <span class="sc">+</span></span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">2</span>, <span class="at">colour =</span> <span class="st">"steelblue"</span>) <span class="sc">+</span></span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_segment</span>(<span class="fu">aes</span>(<span class="at">x =</span> start_date, <span class="at">xend =</span> start_date, <span class="at">y =</span> <span class="fu">reorder</span>(variable_clean, start_date), <span class="at">yend =</span> <span class="fu">reorder</span>(variable_clean, start_date)), </span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a>               <span class="at">colour =</span> <span class="st">"steelblue"</span>, <span class="at">linewidth =</span> <span class="fl">0.3</span>) <span class="sc">+</span></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Data Availability Start Dates for All Variables"</span>,</span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>    <span class="at">subtitle =</span> <span class="st">"Shows when each variable first has non-missing data"</span>,</span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Start Date"</span>,</span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="cn">NULL</span></span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">11</span>) <span class="sc">+</span></span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>(),</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.major.y =</span> <span class="fu">element_line</span>(<span class="at">colour =</span> <span class="st">"grey90"</span>),</span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">7</span>)</span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="data_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="data_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -621,58 +516,54 @@ Date Range:</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Distribution plots for key variables with normal distribution curves</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 10-Year Treasury Yield</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>dgs10_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(dgs10))</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>dgs10_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(dgs10_data<span class="sc">$</span>dgs10, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>dgs10_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(dgs10_data<span class="sc">$</span>dgs10, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> dgs10)) <span class="sc">+</span></span>
-<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">bins =</span> <span class="dv">50</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
-<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_function</span>(<span class="at">fun =</span> dnorm, <span class="at">args =</span> <span class="fu">list</span>(<span class="at">mean =</span> dgs10_mean, <span class="at">sd =</span> dgs10_sd), </span>
-<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>                <span class="at">colour =</span> <span class="st">"darkblue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"10-Year Treasury Yield"</span>, <span class="at">x =</span> <span class="st">"Yield (%)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
-<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Unemployment Rate</span></span>
-<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a>unrate_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(master<span class="sc">$</span>unrate, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a>unrate_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(master<span class="sc">$</span>unrate, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
-<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> unrate)) <span class="sc">+</span></span>
-<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">bins =</span> <span class="dv">50</span>, <span class="at">fill =</span> <span class="st">"darkgreen"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
-<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_function</span>(<span class="at">fun =</span> dnorm, <span class="at">args =</span> <span class="fu">list</span>(<span class="at">mean =</span> unrate_mean, <span class="at">sd =</span> unrate_sd), </span>
-<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>                <span class="at">colour =</span> <span class="st">"darkgreen"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Unemployment Rate"</span>, <span class="at">x =</span> <span class="st">"Rate (%)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
-<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a><span class="co"># CPI Year-over-Year Inflation</span></span>
-<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>cpi_yoy_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
-<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(cpiaucsl)) <span class="sc">|&gt;</span></span>
-<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">cpi_yoy =</span> (cpiaucsl <span class="sc">/</span> <span class="fu">lag</span>(cpiaucsl, <span class="dv">12</span>) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">|&gt;</span></span>
-<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(cpi_yoy))</span>
-<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>cpi_yoy_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(cpi_yoy_data<span class="sc">$</span>cpi_yoy, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>cpi_yoy_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(cpi_yoy_data<span class="sc">$</span>cpi_yoy, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb18-34"><a href="#cb18-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-35"><a href="#cb18-35" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> cpi_yoy_data <span class="sc">|&gt;</span></span>
-<span id="cb18-36"><a href="#cb18-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> cpi_yoy)) <span class="sc">+</span></span>
-<span id="cb18-37"><a href="#cb18-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">bins =</span> <span class="dv">50</span>, <span class="at">fill =</span> <span class="st">"darkred"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
-<span id="cb18-38"><a href="#cb18-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_function</span>(<span class="at">fun =</span> dnorm, <span class="at">args =</span> <span class="fu">list</span>(<span class="at">mean =</span> cpi_yoy_mean, <span class="at">sd =</span> cpi_yoy_sd), </span>
-<span id="cb18-39"><a href="#cb18-39" aria-hidden="true" tabindex="-1"></a>                <span class="at">colour =</span> <span class="st">"darkred"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb18-40"><a href="#cb18-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"CPI Year-over-Year Inflation"</span>, <span class="at">x =</span> <span class="st">"Inflation (%)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
-<span id="cb18-41"><a href="#cb18-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
-<span id="cb18-42"><a href="#cb18-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-43"><a href="#cb18-43" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">/</span> p2 <span class="sc">/</span> p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Distribution plots for key variables with normal distribution curves</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 10-Year Treasury Yield</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>dgs10_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span> <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(dgs10))</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>dgs10_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(dgs10_data<span class="sc">$</span>dgs10, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>dgs10_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(dgs10_data<span class="sc">$</span>dgs10, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>p1 <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> dgs10)) <span class="sc">+</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">bins =</span> <span class="dv">50</span>, <span class="at">fill =</span> <span class="st">"steelblue"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_function</span>(<span class="at">fun =</span> dnorm, <span class="at">args =</span> <span class="fu">list</span>(<span class="at">mean =</span> dgs10_mean, <span class="at">sd =</span> dgs10_sd), </span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>                <span class="at">colour =</span> <span class="st">"darkblue"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"10-Year Treasury Yield"</span>, <span class="at">x =</span> <span class="st">"Yield (%)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Unemployment Rate</span></span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>unrate_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(master<span class="sc">$</span>unrate, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>unrate_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(master<span class="sc">$</span>unrate, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>p2 <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> unrate)) <span class="sc">+</span></span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">bins =</span> <span class="dv">50</span>, <span class="at">fill =</span> <span class="st">"darkgreen"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_function</span>(<span class="at">fun =</span> dnorm, <span class="at">args =</span> <span class="fu">list</span>(<span class="at">mean =</span> unrate_mean, <span class="at">sd =</span> unrate_sd), </span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>                <span class="at">colour =</span> <span class="st">"darkgreen"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Unemployment Rate"</span>, <span class="at">x =</span> <span class="st">"Rate (%)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co"># CPI Year-over-Year Inflation</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a>cpi_yoy_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(cpiaucsl)) <span class="sc">|&gt;</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">cpi_yoy =</span> (cpiaucsl <span class="sc">/</span> <span class="fu">lag</span>(cpiaucsl, <span class="dv">12</span>) <span class="sc">-</span> <span class="dv">1</span>) <span class="sc">*</span> <span class="dv">100</span>) <span class="sc">|&gt;</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(cpi_yoy))</span>
+<span id="cb17-32"><a href="#cb17-32" aria-hidden="true" tabindex="-1"></a>cpi_yoy_mean <span class="ot">&lt;-</span> <span class="fu">mean</span>(cpi_yoy_data<span class="sc">$</span>cpi_yoy, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-33"><a href="#cb17-33" aria-hidden="true" tabindex="-1"></a>cpi_yoy_sd <span class="ot">&lt;-</span> <span class="fu">sd</span>(cpi_yoy_data<span class="sc">$</span>cpi_yoy, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb17-34"><a href="#cb17-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-35"><a href="#cb17-35" aria-hidden="true" tabindex="-1"></a>p3 <span class="ot">&lt;-</span> cpi_yoy_data <span class="sc">|&gt;</span></span>
+<span id="cb17-36"><a href="#cb17-36" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> cpi_yoy)) <span class="sc">+</span></span>
+<span id="cb17-37"><a href="#cb17-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_histogram</span>(<span class="fu">aes</span>(<span class="at">y =</span> <span class="fu">after_stat</span>(density)), <span class="at">bins =</span> <span class="dv">50</span>, <span class="at">fill =</span> <span class="st">"darkred"</span>, <span class="at">alpha =</span> <span class="fl">0.7</span>) <span class="sc">+</span></span>
+<span id="cb17-38"><a href="#cb17-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_function</span>(<span class="at">fun =</span> dnorm, <span class="at">args =</span> <span class="fu">list</span>(<span class="at">mean =</span> cpi_yoy_mean, <span class="at">sd =</span> cpi_yoy_sd), </span>
+<span id="cb17-39"><a href="#cb17-39" aria-hidden="true" tabindex="-1"></a>                <span class="at">colour =</span> <span class="st">"darkred"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb17-40"><a href="#cb17-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"CPI Year-over-Year Inflation"</span>, <span class="at">x =</span> <span class="st">"Inflation (%)"</span>, <span class="at">y =</span> <span class="st">"Density"</span>) <span class="sc">+</span></span>
+<span id="cb17-41"><a href="#cb17-41" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span>
+<span id="cb17-42"><a href="#cb17-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-43"><a href="#cb17-43" aria-hidden="true" tabindex="-1"></a>p1 <span class="sc">/</span> p2 <span class="sc">/</span> p3</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
-<div class="cell-output cell-output-stderr">
-<pre><code>Warning: Removed 96 rows containing non-finite outside the scale range
-(`stat_bin()`).</code></pre>
-</div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="data_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="data_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -684,56 +575,56 @@ Date Range:</code></pre>
 <div class="cell">
 <details class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate correlations for key variables</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>cor_vars <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dgs10"</span>, <span class="st">"dgs2"</span>, <span class="st">"dgs3mo"</span>, <span class="st">"unrate"</span>, <span class="st">"cpiaucsl"</span>, <span class="st">"cpilfesl"</span>)</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>cor_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">all_of</span>(cor_vars)) <span class="sc">|&gt;</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>(<span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create full names for labels</span></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>full_names <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dgs10"</span> <span class="ot">=</span> <span class="st">"10-Year Treasury Yield"</span>,</span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dgs2"</span> <span class="ot">=</span> <span class="st">"2-Year Treasury Yield"</span>,</span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dgs3mo"</span> <span class="ot">=</span> <span class="st">"3-Month Treasury Yield"</span>,</span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"unrate"</span> <span class="ot">=</span> <span class="st">"Unemployment Rate"</span>,</span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"cpiaucsl"</span> <span class="ot">=</span> <span class="st">"CPI Headline"</span>,</span>
-<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"cpilfesl"</span> <span class="ot">=</span> <span class="st">"CPI Core"</span></span>
-<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Rename rows and columns</span></span>
-<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(cor_data) <span class="ot">&lt;-</span> full_names[<span class="fu">rownames</span>(cor_data)]</span>
-<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(cor_data) <span class="ot">&lt;-</span> full_names[<span class="fu">colnames</span>(cor_data)]</span>
-<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Create correlation plot with same orientation on both axes</span></span>
-<span id="cb20-22"><a href="#cb20-22" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot</span>(</span>
-<span id="cb20-23"><a href="#cb20-23" aria-hidden="true" tabindex="-1"></a>  cor_data,</span>
-<span id="cb20-24"><a href="#cb20-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"color"</span>,</span>
-<span id="cb20-25"><a href="#cb20-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"full"</span>,</span>
-<span id="cb20-26"><a href="#cb20-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">order =</span> <span class="st">"hclust"</span>,</span>
-<span id="cb20-27"><a href="#cb20-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.cex =</span> <span class="fl">0.8</span>,</span>
-<span id="cb20-28"><a href="#cb20-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.col =</span> <span class="st">"black"</span>,</span>
-<span id="cb20-29"><a href="#cb20-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.srt =</span> <span class="dv">45</span>,  <span class="co"># Rotate labels 45 degrees</span></span>
-<span id="cb20-30"><a href="#cb20-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">addCoef.col =</span> <span class="st">"black"</span>,</span>
-<span id="cb20-31"><a href="#cb20-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">number.cex =</span> <span class="fl">0.7</span>,</span>
-<span id="cb20-32"><a href="#cb20-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">diag =</span> <span class="cn">TRUE</span></span>
-<span id="cb20-33"><a href="#cb20-33" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Calculate correlations for key variables</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>cor_vars <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"dgs10"</span>, <span class="st">"dgs2"</span>, <span class="st">"dgs3mo"</span>, <span class="st">"unrate"</span>, <span class="st">"cpiaucsl"</span>, <span class="st">"cpilfesl"</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>cor_data <span class="ot">&lt;-</span> master <span class="sc">|&gt;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="fu">all_of</span>(cor_vars)) <span class="sc">|&gt;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">cor</span>(<span class="at">use =</span> <span class="st">"pairwise.complete.obs"</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Create full names for labels</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>full_names <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dgs10"</span> <span class="ot">=</span> <span class="st">"10-Year Treasury Yield"</span>,</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dgs2"</span> <span class="ot">=</span> <span class="st">"2-Year Treasury Yield"</span>,</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>  <span class="st">"dgs3mo"</span> <span class="ot">=</span> <span class="st">"3-Month Treasury Yield"</span>,</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>  <span class="st">"unrate"</span> <span class="ot">=</span> <span class="st">"Unemployment Rate"</span>,</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"cpiaucsl"</span> <span class="ot">=</span> <span class="st">"CPI Headline"</span>,</span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a>  <span class="st">"cpilfesl"</span> <span class="ot">=</span> <span class="st">"CPI Core"</span></span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co"># Rename rows and columns</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="fu">rownames</span>(cor_data) <span class="ot">&lt;-</span> full_names[<span class="fu">rownames</span>(cor_data)]</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="fu">colnames</span>(cor_data) <span class="ot">&lt;-</span> full_names[<span class="fu">colnames</span>(cor_data)]</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Create correlation plot with same orientation on both axes</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot</span>(</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>  cor_data,</span>
+<span id="cb18-24"><a href="#cb18-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">method =</span> <span class="st">"color"</span>,</span>
+<span id="cb18-25"><a href="#cb18-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">type =</span> <span class="st">"full"</span>,</span>
+<span id="cb18-26"><a href="#cb18-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">order =</span> <span class="st">"hclust"</span>,</span>
+<span id="cb18-27"><a href="#cb18-27" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.cex =</span> <span class="fl">0.8</span>,</span>
+<span id="cb18-28"><a href="#cb18-28" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.col =</span> <span class="st">"black"</span>,</span>
+<span id="cb18-29"><a href="#cb18-29" aria-hidden="true" tabindex="-1"></a>  <span class="at">tl.srt =</span> <span class="dv">45</span>,  <span class="co"># Rotate labels 45 degrees</span></span>
+<span id="cb18-30"><a href="#cb18-30" aria-hidden="true" tabindex="-1"></a>  <span class="at">addCoef.col =</span> <span class="st">"black"</span>,</span>
+<span id="cb18-31"><a href="#cb18-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">number.cex =</span> <span class="fl">0.7</span>,</span>
+<span id="cb18-32"><a href="#cb18-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">diag =</span> <span class="cn">TRUE</span></span>
+<span id="cb18-33"><a href="#cb18-33" aria-hidden="true" tabindex="-1"></a>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="data_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="data_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 </div>
-<p><strong>Inference:</strong> The correlation matrix reveals some expected relationships. Treasury yields at different maturities are highly correlated (0.8-0.9), which makes sense as they’re all responding to similar economic forces. CPI headline and core are very closely related (0.99), as expected. Interestingly, yields and inflation show moderate positive correlation, which reinforces the idea that higher inflation expectations push bond yields up. What’s also interesting is that we don’t see strong negative correlations here unemployment doesn’t correlate strongly with yields or inflation in this simple view, but that’s probably because the relationship is more complex and time-varying. The <strong>Phillips curve</strong> relationship (negative correlation between unemployment and inflation) might be masked by the long time period or might only appear during specific economic regimes. The clustering in the plot groups similar variables together, which helps us understand the structure of our data.</p>
+<p>The correlation matrix reveals some expected relationships. Treasury yields at different maturities are highly correlated (0.8-0.9), which makes sense as they’re all responding to similar economic forces. CPI headline and core are very closely related (0.99), as expected. Interestingly, yields and inflation show moderate positive correlation, which could reinforce the idea that higher inflation expectations push bond yields up. What’s also interesting is that we don’t see strong negative correlations here unemployment doesn’t correlate strongly with yields or inflation in this simple view, but that’s probably because the relationship is more complex and time-varying. The <strong>Phillips curve</strong> relationship (negative correlation between unemployment and inflation) might be masked by the long time period or might only appear during specific economic regimes. The clustering in the plot groups similar variables together, which helps us understand the structure of our data.</p>
 </section>
 </section>
 <section id="data-processing-notes" class="level2" data-number="2.4">
 <h2 data-number="2.4" class="anchored" data-anchor-id="data-processing-notes"><span class="header-section-number">2.4</span> Data Processing Notes</h2>
 <section id="forward-filling-strategy" class="level3" data-number="2.4.1">
 <h3 data-number="2.4.1" class="anchored" data-anchor-id="forward-filling-strategy"><span class="header-section-number">2.4.1</span> Forward-Filling Strategy</h3>
-<p>The cleaning process used forward-filling (carry-forward) for missing values, which is appropriate for time series data where: - Treasury yields are relatively stable month-to-month - Macroeconomic indicators change gradually - Missing values often represent temporary data collection gaps rather than true missing observations</p>
+<p>The cleaning process used forward-filling (carry-forward) for missing values, which is appropriate for time series data where treasury yields are relatively stable month-to-month, macroeconomic indicators change gradually &amp; missing values often represent temporary data collection gaps rather than true missing observations</p>
 </section>
 <section id="limitations" class="level3" data-number="2.4.2">
 <h3 data-number="2.4.2" class="anchored" data-anchor-id="limitations"><span class="header-section-number">2.4.2</span> Limitations</h3>
