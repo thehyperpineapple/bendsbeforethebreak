@@ -140,7 +140,7 @@ ggplot(missing_stats, aes(x = reorder(variable_clean, missing_pct), y = missing_
   )
 ```
 
-**I**Most variables have complete or near-complete data, which is great for analysis. The ones with higher missing percentages like TIPS breakeven rates (T10YIE, T5YIE, T5YIFR) and the Employment Cost Index are newer series that simply weren't collected in earlier decades. This makes sense historically; TIPS didn't exist until the late 1990s, and the ECI started in the 1980s. The oil price data (DCOILWTICO) also has gaps, likely due to market disruptions or data collection issues. For our analysis, we'll focus on variables with good coverage, and when we need the newer series, we'll work with the available time periods.
+**Inference:** Most variables have complete or near-complete data, which is great for analysis. The ones with higher missing percentages like TIPS breakeven rates (T10YIE, T5YIE, T5YIFR) and the Employment Cost Index are newer series that simply weren't collected in earlier decades. This makes sense historically; TIPS didn't exist until the late 1990s, and the ECI started in the 1980s. The oil price data (DCOILWTICO) also has gaps, likely due to market disruptions or data collection issues. For our analysis, we'll focus on variables with good coverage, and when we need the newer series, we'll work with the available time periods.
 
 ## Dataset Overview
 
@@ -315,13 +315,13 @@ corrplot(
 )
 ```
 
-**Inference:** The correlation matrix reveals some expected relationships. Treasury yields at different maturities are highly correlated (0.8-0.9), which makes sense as they're all responding to similar economic forces. CPI headline and core are very closely related (0.99), as expected. Interestingly, yields and inflation show moderate positive correlation, which reinforces the idea that higher inflation expectations push bond yields up. What's also interesting is that we don't see strong negative correlations here unemployment doesn't correlate strongly with yields or inflation in this simple view, but that's probably because the relationship is more complex and time-varying. The **Phillips curve** relationship (negative correlation between unemployment and inflation) might be masked by the long time period or might only appear during specific economic regimes. The clustering in the plot groups similar variables together, which helps us understand the structure of our data.
+The correlation matrix reveals some expected relationships. Treasury yields at different maturities are highly correlated (0.8-0.9), which makes sense as they're all responding to similar economic forces. CPI headline and core are very closely related (0.99), as expected. Interestingly, yields and inflation show moderate positive correlation, which could reinforce the idea that higher inflation expectations push bond yields up. What's also interesting is that we don't see strong negative correlations here unemployment doesn't correlate strongly with yields or inflation in this simple view, but that's probably because the relationship is more complex and time-varying. The **Phillips curve** relationship (negative correlation between unemployment and inflation) might be masked by the long time period or might only appear during specific economic regimes. The clustering in the plot groups similar variables together, which helps us understand the structure of our data.
 
 ## Data Processing Notes
 
 ### Forward-Filling Strategy
 
-The cleaning process used forward-filling (carry-forward) for missing values, which is appropriate for time series data where: - Treasury yields are relatively stable month-to-month - Macroeconomic indicators change gradually - Missing values often represent temporary data collection gaps rather than true missing observations
+The cleaning process used forward-filling (carry-forward) for missing values, which is appropriate for time series data where treasury yields are relatively stable month-to-month, macroeconomic indicators change gradually & missing values often represent temporary data collection gaps rather than true missing observations
 
 ### Limitations
 

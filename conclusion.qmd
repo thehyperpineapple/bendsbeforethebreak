@@ -1,7 +1,23 @@
 # Conclusion
 
-Our analysis shows that the yield curve remains one of the most consistent early warning indicators of recessions. Inversions in spreads such as the 10Y–2Y or the 10Y–3M regularly occur months before economic downturns, and in many cases the signal appears well before unemployment begins to rise or inflation starts to fall. While false positives do occur, especially in periods of temporary financial stress, the yield curve still provides valuable information about market expectations and economic sentiment.
+## Key Findings
 
-Looking across decades, however, we see that *recessions and unemployment no longer look the same*. In the mid-20th century, recessions caused sudden layoffs in manufacturing and construction, producing sharp spikes in unemployment. By contrast, more recent recessions, especially the 2001 and 2020 episodes show different patterns: slower climbs, service-sector contraction, and highly unequal effects across demographic groups. Women, younger workers, and Black and Hispanic workers often experience deeper and more prolonged unemployment during downturns, even when headline unemployment appears moderate. This emphasizes that the macroeconomic averages we usually monitor can hide important distributional realities.
+Our analysis addresses the three research questions we set out to explore:
 
-The yield curve captures broad economic expectations, but pairing it with inflation dynamics and labor market detail reveals a more complete story. Recessions are not simply financial events or shifts in GDP—they are lived experiences that vary by time period, industry structure, and social group. Our findings suggest that while the yield curve tells us *when* trouble is coming, understanding *how* it will unfold requires looking beyond financial data and into the structure of the economy and the labor market itself.
+### Yield Curve Reliability
+
+The yield curve remains one of the most consistent early warning indicators of recessions. Inversions in spreads such as the 10Y–2Y or the 10Y–3M regularly occur 6-15 months before economic downturns, and in many cases the signal appears well before unemployment begins to rise or inflation starts to fall. The 10Y–3M spread provides the earliest and most reliable signal, while the 10Y–2Y offers moderate predictive power. While false positives do occur (notably during the 1998 debt crisis), true positives dominate the historical record, strengthening the credibility of inversions as recession predictors.
+
+### Inflation, Unemployment, and Recessions
+
+The relationship between inflation and unemployment has shifted over time. During most recessions, we observe the classic trade-off: unemployment spikes while inflation drops. However, the 1970s-80s broke this pattern with stagflation which explains why the Phillips curve relationship failed then. Supply-driven inflation (energy prices) shows high volatility and temporary impacts on yields, while demand-driven inflation (core CPI) is smoother and has more persistent effects. The Fed can influence demand through policy but cannot control supply shocks, thus creating different policy challenges depending on the inflation source.
+
+### Changing Nature of Recessions
+
+*Recessions and unemployment no longer look the same*.
+
+In the mid-20th century, recessions caused sudden layoffs in manufacturing and construction, producing sharp spikes in unemployment. By contrast, more recent recessions, especially 2001 and 2020, show different patterns: slower climbs, service-sector contraction, and highly unequal effects across demographic groups. Women, younger workers, and Black and Hispanic workers often experience deeper and more prolonged unemployment during downturns, even when headline unemployment appears moderate. This emphasizes that the macroeconomic averages we usually monitor can hide important distributional realities.
+
+## Takeaway
+
+The yield curve captures broad economic expectations, but pairing it with inflation dynamics and labor market detail reveals a more complete story. Recessions are not simply financial events or shifts in GDP. They are lived experiences that vary by time period, industry structure, and social group. Our findings suggest that while the yield curve tells us when trouble is coming, understanding how it will unfold requires looking beyond financial data and into the structure of the economy and the labor market itself.

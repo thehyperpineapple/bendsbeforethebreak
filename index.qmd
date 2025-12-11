@@ -1,9 +1,23 @@
 # Introduction
 
-Recessions are often described as sudden breaks in the economy, but in reality the warning signs usually appear long before the downturn begins. One of the clearest signals comes from the U.S. Treasury yield curve, which summarizes how interest rates differ across short and long-term maturities. When the curve “bends” or inverts, meaning short-term rates rise above long-term rates and it has historically been one of the strongest predictors of a coming recession.
+Recessions are often described as sudden breaks in the economy, but in reality the warning signs usually appear long before the downturn begins. One of the clearest signals comes from the U.S. Treasury yield curve, which summarizes how interest rates differ across short and long-term maturities. When the curve "bends" or inverts—meaning short-term rates rise above long-term rates—it has historically been one of the strongest predictors of a coming recession.
+
+## Research Questions
+
+This project addresses three key questions:
+
+1.  **How reliable are yield curve inversions as recession predictors?**
+
+    We examine multiple spreads (10Y-2Y, 10Y-3M, 5Y-2Y) to determine which provide the earliest and most accurate signals, and how often false positives occur.
+
+2.  **How do inflation dynamics interact with unemployment and recessions?**
+
+    We explore whether the traditional Phillips curve relationship holds, when it breaks down (as during stagflation), and how supply-driven versus demand-driven inflation affects bond markets differently.
+
+3.  **How have recessions changed over time, and who bears the burden?**
+
+    We investigate whether the experience of economic downturns has shifted from sharp industrial contractions to slower service-sector declines, and how unemployment patterns vary across demographic groups (gender, race, age).
+
+## Approach
 
 In this project, we explore how the yield curve behaves across different maturities, how key spreads such as the 10-year minus 2-year or the 10-year minus 3-month evolve over time, and how these financial indicators line up with periods of economic stress. We extend this analysis by looking at inflation, unemployment, and demographic labor outcomes to understand how economic downturns unfold in the real world and not just in financial markets.
-
-One important aspect we highlight is how *the definition and experience of a recession have changed over time*. Early recessions (1950s–1970s) were typically sharp industrial contractions with sudden drops in employment. Later recessions, particularly after the 1990s, were often slower-moving, service-sector driven, and more uneven in how they affected different demographic groups. Unemployment spikes became more gradual, recoveries slower, and the burden increasingly concentrated among younger workers, women, and minority groups. These structural changes in the labor market mean that the same financial signals, a flattening yield curve, rising volatility, can correspond to very different real-world outcomes depending on the era.
-
-By combining yield curve dynamics with inflation trends and unemployment behavior across time, this project aims to show not only *when* recessions happen, but *how* they feel on the ground and *who* they impact most.
